@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+node_modules/
+frontend/dist/
+data/raw/
+data/processed/
+models/*.pth
+models/*.pt
+*.db
+.DS_Store

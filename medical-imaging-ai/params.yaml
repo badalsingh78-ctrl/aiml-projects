@@ -1,0 +1,46 @@
+dataset:
+  classification_name: "CheXpert / NIH ChestX-ray14"
+  segmentation_name: "Medical Segmentation Decathlon (Task06_Lung)"
+  image_size_2d: [224, 224]
+  roi_size_3d: [96, 96, 96]
+  val_split: 0.15
+  test_split: 0.15
+  random_seed: 42
+
+preprocess:
+  window_center: -600
+  window_width: 1500
+  normalize_mean: [0.485, 0.456, 0.406]
+  normalize_std: [0.229, 0.224, 0.225]
+  augment_rotation_deg: 10
+  augment_horizontal_flip: true
+
+classifier:
+  backbone: "densenet121"  # Options: densenet121, efficientnet_b0
+  pretrained: true
+  num_classes: 5
+  class_names:
+    - "Atelectasis"
+    - "Cardiomegaly"
+    - "Consolidation"
+    - "Edema"
+    - "Pleural Effusion"
+  epochs: 15
+  batch_size: 32
+  learning_rate: 0.0001
+  weight_decay: 0.00001
+
+segmentation:
+  architecture: "MONAI_UNet_3D"
+  in_channels: 1
+  out_channels: 2
+  channels: [16, 32, 64, 128, 256]
+  strides: [2, 2, 2, 2]
+  epochs: 50
+  batch_size: 2
+  learning_rate: 0.0002
+
+gradcam:
+  target_layer: "features.denseblock4.denselayer16.conv2"
+  colormap: "jet"
+  alpha: 0.45

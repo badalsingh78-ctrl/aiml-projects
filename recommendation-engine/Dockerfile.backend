@@ -1,0 +1,13 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+COPY requirements-lite.txt .
+RUN pip install --no-cache-dir -r requirements-lite.txt
+
+COPY . .
+RUN PYTHONPATH=. python data/prepare_movielens.py --synthetic && \
+    PYTHONPATH=. python spark/feature_engineering.py --force-local && \
+    PYTHONPATH=. python models/local_engine.py
+
+EXPOSE 8000
+CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]

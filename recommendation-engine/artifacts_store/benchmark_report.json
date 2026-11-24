@@ -1,0 +1,53 @@
+{
+  "evaluated_test_users": 371,
+  "two_tower_training": {
+    "num_users": 385,
+    "num_items": 120,
+    "embedding_dim": 32,
+    "train_time_ms": 67.42
+  },
+  "faiss_index": {
+    "backend": "numpy_exact_ip",
+    "index_type": "flat_ip",
+    "num_items": 120,
+    "dim": 32,
+    "build_time_ms": 0.041
+  },
+  "ranker_training_ms": {
+    "wide_and_deep": 226.61,
+    "dcn_v2": 624.35
+  },
+  "models": {
+    "popularity_baseline": {
+      "ndcg_at_10": 0.1276,
+      "recall_at_10": 0.1693,
+      "recall_at_25": 0.3712,
+      "mrr": 0.2204
+    },
+    "stage1_two_tower_faiss": {
+      "ndcg_at_10": 0.191,
+      "recall_at_10": 0.2397,
+      "recall_at_25": 0.472,
+      "recall_at_50": 0.7444,
+      "mrr": 0.316,
+      "p50_latency_ms": 0.048,
+      "p95_latency_ms": 0.377
+    },
+    "stage2_wide_and_deep": {
+      "ndcg_at_10": 0.2287,
+      "recall_at_10": 0.2809,
+      "recall_at_25": 0.5225,
+      "mrr": 0.3698,
+      "p50_latency_ms": 0.08,
+      "p95_latency_ms": 0.707
+    },
+    "stage2_dcn_v2": {
+      "ndcg_at_10": 0.2328,
+      "recall_at_10": 0.278,
+      "recall_at_25": 0.5208,
+      "mrr": 0.3851,
+      "p50_latency_ms": 0.086,
+      "p95_latency_ms": 0.628
+    }
+  }
+}

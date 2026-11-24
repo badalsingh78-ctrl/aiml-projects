@@ -1,0 +1,5 @@
+{
+  "dim": 32,
+  "index_type": "flat_ip",
+  "backend": "numpy_exact_ip"
+}

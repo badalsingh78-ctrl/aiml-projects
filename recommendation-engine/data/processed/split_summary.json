@@ -1,0 +1,12 @@
+{
+  "mode": "benchmark_synthetic",
+  "total_interactions": 21324,
+  "train_rows": 17059,
+  "val_rows": 2132,
+  "test_rows": 2133,
+  "num_movies": 120,
+  "num_users_total": 400,
+  "t_train_end": 1755270070,
+  "t_val_end": 1773187271,
+  "temporal_leakage_verified": true
+}

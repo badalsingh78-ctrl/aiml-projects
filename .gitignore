@@ -1,0 +1,16 @@
+# Local environments and generated dependencies
+.venv/
+venv/
+node_modules/
+__pycache__/
+*.py[cod]
+
+# Local databases and environment secrets
+*.db
+.env
+.env.*
+!.env.example
+
+# Generated build output
+frontend/dist/
+dist/

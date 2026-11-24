@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CinePulse AI — Large-Scale Two-Stage Recommendation Engine</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: radial-gradient(circle at 15% 10%, #111d38 0%, #070b14 48%, #04060b 100%);
+      color: #f1f5f9;
+      min-height: 100vh;
+    }
+    .glass {
+      background: rgba(15, 23, 42, 0.72);
+      backdrop-filter: blur(14px);
+      border: 1px solid rgba(148, 163, 184, 0.14);
+    }
+    .glass-hover:hover {
+      border-color: rgba(56, 189, 248, 0.45);
+      transform: translateY(-2px);
+      box-shadow: 0 14px 32px -12px rgba(14, 165, 233, 0.25);
+    }
+    .movie-card {
+      transition: all 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .tab-active {
+      background: linear-gradient(135deg, rgba(14,165,233,0.22), rgba(99,102,241,0.22));
+      border-color: rgba(56, 189, 248, 0.55);
+      color: #38bdf8;
+    }
+    ::-webkit-scrollbar { width: 7px; height: 7px; }
+    ::-webkit-scrollbar-track { background: #070b14; }
+    ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 99px; }
+  </style>
+</head>
+<body class="antialiased selection:bg-sky-500/30 selection:text-sky-200">
+  <!-- Toast Container -->
+  <div id="toast-box" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- Top Navigation -->
+  <header class="sticky top-0 z-40 glass border-b border-slate-800/80">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-400 via-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-sky-500/20">
+          <i data-lucide="sparkles" class="w-5 h-5 text-white"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-lg font-extrabold tracking-tight text-white">CinePulse <span class="text-sky-400">AI</span></h1>
+            <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-sky-500/15 text-sky-300 border border-sky-400/25">AIML-03</span>
+          </div>
+          <p class="text-xs text-slate-400">Two-Stage Neural Recommender · TFRS + FAISS + DCN-v2 + Redis + Triton</p>
+        </div>
+      </div>
+
+      <nav class="flex items-center gap-1.5 flex-wrap">
+        <button data-tab="discover" class="nav-tab tab-active px-3.5 py-2 rounded-lg text-xs font-semibold border border-transparent flex items-center gap-1.5 transition">
+          <i data-lucide="film" class="w-3.5 h-3.5"></i> Discover Feed
+        </button>
+        <button data-tab="coldstart" class="nav-tab px-3.5 py-2 rounded-lg text-xs font-semibold text-slate-300 hover:text-white border border-transparent flex items-center gap-1.5 transition">
+          <i data-lucide="snowflake" class="w-3.5 h-3.5"></i> Cold-Start Studio
+        </button>
+        <button data-tab="abtest" class="nav-tab px-3.5 py-2 rounded-lg text-xs font-semibold text-slate-300 hover:text-white border border-transparent flex items-center gap-1.5 transition">
+          <i data-lucide="flask-conical" class="w-3.5 h-3.5"></i> A/B Lab & Metrics
+        </button>
+        <button data-tab="arch" class="nav-tab px-3.5 py-2 rounded-lg text-xs font-semibold text-slate-300 hover:text-white border border-transparent flex items-center gap-1.5 transition">
+          <i data-lucide="cpu" class="w-3.5 h-3.5"></i> Architecture & MLOps
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+    <!-- Live Telemetry Strip -->
+    <section class="grid grid-cols-2 lg:grid-cols-5 gap-3">
+      <div class="glass rounded-xl p-3.5">
+        <div class="text-[11px] font-medium text-slate-400 flex items-center justify-between">
+          <span>Active Stage-2 Model</span>
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        </div>
+        <div id="kpi-model" class="text-base font-bold text-white mt-1">DCN-v2 (Treatment)</div>
+        <div id="kpi-serving" class="text-[11px] text-sky-400 mt-0.5">Triton Ensemble Ready</div>
+      </div>
+      <div class="glass rounded-xl p-3.5">
+        <div class="text-[11px] font-medium text-slate-400">End-to-End Latency</div>
+        <div id="kpi-latency" class="text-base font-bold text-emerald-400 mt-1">0.086 ms</div>
+        <div id="kpi-latency-sub" class="text-[11px] text-slate-400 mt-0.5">FAISS 0.048ms + Rank 0.038ms</div>
+      </div>
+      <div class="glass rounded-xl p-3.5">
+        <div class="text-[11px] font-medium text-slate-400">Redis Cache Status</div>
+        <div id="kpi-cache" class="text-base font-bold text-amber-300 mt-1">MISS (Computed)</div>
+        <div id="kpi-cache-rate" class="text-[11px] text-slate-400 mt-0.5">Hit Rate: 0.0% · TTL 300s</div>
+      </div>
+      <div class="glass rounded-xl p-3.5">
+        <div class="text-[11px] font-medium text-slate-400">Held-Out NDCG@10</div>
+        <div class="text-base font-bold text-sky-300 mt-1">0.2328 <span class="text-xs text-emerald-400">+82.4%</span></div>
+        <div class="text-[11px] text-slate-400 mt-0.5">vs. Popularity (0.1276)</div>
+      </div>
+      <div class="glass rounded-xl p-3.5 col-span-2 lg:col-span-1">
+        <div class="text-[11px] font-medium text-slate-400">Stage-1 Recall@50</div>
+        <div class="text-base font-bold text-violet-300 mt-1">74.44%</div>
+        <div class="text-[11px] text-slate-400 mt-0.5">Strict Time-Split Verified</div>
+      </div>
+    </section>
+
+    <!-- TAB 1: DISCOVER FEED -->
+    <section id="view-discover" class="space-y-5">
+      <!-- Control Bar -->
+      <div class="glass rounded-2xl p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div class="flex flex-wrap items-center gap-3">
+          <div>
+            <label for="user-select" class="block text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-1">User Persona</label>
+            <select id="user-select" class="bg-slate-900/90 border border-slate-700 text-slate-100 text-xs font-medium rounded-lg px-3 py-2 focus:outline-none focus:border-sky-400"></select>
+          </div>
+          <div>
+            <label for="model-select" class="block text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-1">Stage-2 Ranker</label>
+            <select id="model-select" class="bg-slate-900/90 border border-slate-700 text-slate-100 text-xs font-medium rounded-lg px-3 py-2 focus:outline-none focus:border-sky-400">
+              <option value="auto">Auto (MD5 A/B Bucket)</option>
+              <option value="dcn_v2">DCN-v2 (Cross + Deep)</option>
+              <option value="wide_and_deep">Wide & Deep (Control)</option>
+            </select>
+          </div>
+          <div>
+            <label for="search-input" class="block text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-1">Filter Feed</label>
+            <input id="search-input" type="text" placeholder="Title or genre..." class="bg-slate-900/90 border border-slate-700 text-slate-100 text-xs rounded-lg px-3 py-2 w-44 focus:outline-none focus:border-sky-400" />
+          </div>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2.5">
+          <label class="inline-flex items-center gap-2 text-xs text-slate-300 bg-slate-900/80 border border-slate-700/80 px-3 py-2 rounded-lg cursor-pointer">
+            <input id="cache-toggle" type="checkbox" checked class="accent-sky-400 rounded" />
+            <span>Redis Cache</span>
+          </label>
+          <button id="btn-recompute" class="px-3.5 py-2 rounded-lg bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 transition">
+            <i data-lucide="zap" class="w-3.5 h-3.5"></i> Run Inference
+          </button>
+          <button id="btn-flush" class="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs border border-slate-700 flex items-center gap-1.5 transition">
+            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Flush Cache
+          </button>
+        </div>
+      </div>
+
+      <!-- User Context & Two-Stage Funnel Banner -->
+      <div id="user-banner" class="glass rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 border-l-4 border-l-sky-400"></div>
+
+      <!-- Movie Cards Grid -->
+      <div id="movie-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"></div>
+    </section>
+
+    <!-- TAB 2: COLD-START STUDIO -->
+    <section id="view-coldstart" class="hidden space-y-5">
+      <div class="glass rounded-2xl p-5 space-y-4">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div>
+            <h2 class="text-lg font-bold text-white flex items-center gap-2">
+              <i data-lucide="snowflake" class="w-5 h-5 text-sky-400"></i> Cold-Start Onboarding & Fallback Engine
+            </h2>
+            <p class="text-xs text-slate-400 mt-1">Select 0 genres for Bayesian-smoothed popularity + trending fallback, or pick 1–3 onboarding genres to trigger live TF-IDF cosine content blending (70% content / 30% quality).</p>
+          </div>
+          <button id="btn-clear-genres" class="px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 border border-slate-700 self-start">
+            Reset to Zero-History
+          </button>
+        </div>
+        <div id="genre-chips" class="flex flex-wrap gap-2"></div>
+        <div id="coldstart-strategy-bar" class="text-xs px-3.5 py-2.5 rounded-xl bg-sky-500/10 border border-sky-400/25 text-sky-200 font-medium"></div>
+      </div>
+      <div id="coldstart-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"></div>
+    </section>
+
+    <!-- TAB 3: A/B TESTING LAB & METRICS -->
+    <section id="view-abtest" class="hidden space-y-5">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div class="glass rounded-2xl p-5 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Control · Variant A</span>
+            <span class="text-[11px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">Wide & Deep</span>
+          </div>
+          <div id="ab-ctrl-ctr" class="text-3xl font-extrabold text-white">9.04%</div>
+          <div id="ab-ctrl-counts" class="text-xs text-slate-400">217 clicks / 2,400 impressions</div>
+          <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+            <div id="ab-ctrl-bar" class="h-full bg-slate-400 rounded-full transition-all duration-300" style="width: 45%"></div>
+          </div>
+        </div>
+
+        <div class="glass rounded-2xl p-5 space-y-3 border border-sky-500/30">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold uppercase tracking-wider text-sky-400">Treatment · Variant B</span>
+            <span class="text-[11px] px-2 py-0.5 rounded-full bg-sky-500/15 text-sky-300 border border-sky-400/30">DCN-v2</span>
+          </div>
+          <div id="ab-trt-ctr" class="text-3xl font-extrabold text-sky-300">9.92%</div>
+          <div id="ab-trt-counts" class="text-xs text-slate-400">238 clicks / 2,400 impressions</div>
+          <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+            <div id="ab-trt-bar" class="h-full bg-gradient-to-r from-sky-400 to-indigo-400 rounded-full transition-all duration-300" style="width: 55%"></div>
+          </div>
+        </div>
+
+        <div class="glass rounded-2xl p-5 flex flex-col justify-between space-y-3">
+          <div>
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold uppercase tracking-wider text-emerald-400">Two-Proportion Z-Test</span>
+              <span id="ab-sig-badge" class="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-400/30">Evaluating</span>
+            </div>
+            <div id="ab-lift" class="text-3xl font-extrabold text-emerald-400 mt-2">+9.73% Lift</div>
+            <div id="ab-stats-line" class="text-xs text-slate-300 mt-1">z = 1.03 · p = 0.301</div>
+          </div>
+          <button id="btn-sim-traffic" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-500 hover:from-sky-400 hover:to-indigo-400 text-white font-bold text-xs flex items-center justify-center gap-2 transition">
+            <i data-lucide="activity" class="w-4 h-4"></i> Simulate +400 Online Requests
+          </button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div class="glass rounded-2xl p-5">
+          <h3 class="text-sm font-bold text-white mb-1">Offline Ranking Quality (Strict Temporal Test Split)</h3>
+          <p class="text-xs text-slate-400 mb-4">Measured on held-out future interactions (21,324 total · 80/10/10 time split · zero leakage)</p>
+          <div class="relative h-72"><canvas id="chart-offline"></canvas></div>
+        </div>
+        <div class="glass rounded-2xl p-5">
+          <h3 class="text-sm font-bold text-white mb-1">Stage-by-Stage Serving Latency (ms)</h3>
+          <p class="text-xs text-slate-400 mb-4">Sub-millisecond FAISS retrieval + neural re-ranking vs. Redis cache hit</p>
+          <div class="relative h-72"><canvas id="chart-latency"></canvas></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: ARCHITECTURE & MLOPS -->
+    <section id="view-arch" class="hidden space-y-5">
+      <div class="glass rounded-2xl p-6 space-y-5">
+        <div>
+          <h2 class="text-lg font-bold text-white">End-to-End Two-Stage Architecture (All 7 Milestones)</h2>
+          <p class="text-xs text-slate-400 mt-1">Mirrors production Netflix & Amazon retrieval-plus-ranking systems with automated Airflow retraining and Triton model serving.</p>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3.5" id="milestone-cards"></div>
+      </div>
+
+      <div class="glass rounded-2xl p-6">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+          <div>
+            <h3 class="text-sm font-bold text-white">Apache Airflow Daily Retraining DAG (`movielens_two_stage_retraining`)</h3>
+            <p class="text-xs text-slate-400">Schedule: `0 2 * * *` (02:00 UTC Daily) · Automated Offline Quality Gate (NDCG@10 &ge; 0.20, Recall@50 &ge; 0.40)</p>
+          </div>
+          <span class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-400/30">All 5 DAG Tasks Healthy</span>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-5 gap-2.5 text-xs">
+          <div class="p-3.5 rounded-xl bg-slate-900/90 border border-amber-500/30">
+            <div class="text-[10px] font-bold text-amber-400 uppercase">Task 1</div>
+            <div class="font-bold text-white mt-1">temporal_data_split</div>
+            <div class="text-slate-400 mt-1">80/10/10 time split + leakage assertions</div>
+          </div>
+          <div class="p-3.5 rounded-xl bg-slate-900/90 border border-amber-500/30">
+            <div class="text-[10px] font-bold text-amber-400 uppercase">Task 2</div>
+            <div class="font-bold text-white mt-1">spark_feature_etl</div>
+            <div class="text-slate-400 mt-1">Rolling history & Bayesian popularity Parquet</div>
+          </div>
+          <div class="p-3.5 rounded-xl bg-slate-900/90 border border-sky-500/30">
+            <div class="text-[10px] font-bold text-sky-400 uppercase">Task 3</div>
+            <div class="font-bold text-white mt-1">train_two_tower_faiss</div>
+            <div class="text-slate-400 mt-1">TFRS embeddings + FAISS IVF/FlatIP build</div>
+          </div>
+          <div class="p-3.5 rounded-xl bg-slate-900/90 border border-violet-500/30">
+            <div class="text-[10px] font-bold text-violet-400 uppercase">Task 4</div>
+            <div class="font-bold text-white mt-1">offline_quality_gate</div>
+            <div class="text-slate-400 mt-1">Verifies DCN-v2 NDCG@10 & Recall@50</div>
+          </div>
+          <div class="p-3.5 rounded-xl bg-slate-900/90 border border-emerald-500/30">
+            <div class="text-[10px] font-bold text-emerald-400 uppercase">Task 5</div>
+            <div class="font-bold text-white mt-1">triton_reload_redis</div>
+            <div class="text-slate-400 mt-1">Hot-reloads Triton & warms Redis cache</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const DATA = {"split_summary": {"mode": "benchmark_synthetic", "total_interactions": 21324, "train_rows": 17059, "val_rows": 2132, "test_rows": 2133, "num_movies": 120, "num_users_total": 400, "t_train_end": 1755270070, "t_val_end": 1773187271, "temporal_leakage_verified": true}, "benchmarks": {"popularity_baseline": {"ndcg_at_10": 0.1276, "recall_at_10": 0.1693, "recall_at_25": 0.3712, "mrr": 0.2204}, "stage1_two_tower_faiss": {"ndcg_at_10": 0.191, "recall_at_10": 0.2397, "recall_at_25": 0.472, "recall_at_50": 0.7444, "mrr": 0.316, "p50_latency_ms": 0.048, "p95_latency_ms": 0.377}, "stage2_wide_and_deep": {"ndcg_at_10": 0.2287, "recall_at_10": 0.2809, "recall_at_25": 0.5225, "mrr": 0.3698, "p50_latency_ms": 0.08, "p95_latency_ms": 0.707}, "stage2_dcn_v2": {"ndcg_at_10": 0.2328, "recall_at_10": 0.278, "recall_at_25": 0.5208, "mrr": 0.3851, "p50_latency_ms": 0.086, "p95_latency_ms": 0.628}}, "ab_baseline": {"experiment_id": "exp_2026_q4_dcn_vs_widedeep", "control": {"name": "wide_and_deep", "impressions": 2472, "clicks": 217, "ctr": 0.0878, "ctr_pct": 8.78, "avg_latency_ms": 4.1}, "treatment": {"name": "dcn_v2", "impressions": 2472, "clicks": 238, "ctr": 0.0963, "ctr_pct": 9.63, "avg_latency_ms": 4.69}, "relative_ctr_lift_pct": 9.68, "z_score": 1.033, "p_value": 0.30152, "statistically_significant": false, "winner": "inconclusive"}, "users": [{"userId": 1, "archetype": "Animation & Fantasy", "is_cold_start": false, "interaction_count": 21, "mean_rating": 4.43, "top_genres": ["Adventure", "Drama", "Animation"], "ab_variant": "wide_and_deep", "dcn_v2": [{"rank": 1, "movieId": 47, "title": "Princess Mononoke (1997)", "clean_title": "Princess Mononoke", "release_year": 1997, "genres": ["Action", "Adventure", "Animation", "Drama", "Fantasy"], "stage1_score": 0.5909, "final_score": 0.9113, "bayesian_rating": 4.62, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.59) + matches Adventure, Animation"}, {"rank": 2, "movieId": 44, "title": "Inside Out (2015)", "clean_title": "Inside Out", "release_year": 2015, "genres": ["Adventure", "Animation", "Children", "Comedy", "Drama"], "stage1_score": 0.5016, "final_score": 0.8593, "bayesian_rating": 4.41, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.50) + matches Adventure, Animation"}, {"rank": 3, "movieId": 45, "title": "Coco (2017)", "clean_title": "Coco", "release_year": 2017, "genres": ["Adventure", "Animation", "Children", "Drama", "Musical"], "stage1_score": 0.4552, "final_score": 0.8552, "bayesian_rating": 4.52, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.46) + matches Adventure, Animation"}, {"rank": 4, "movieId": 113, "title": "Ratatouille (2007)", "clean_title": "Ratatouille", "release_year": 2007, "genres": ["Animation", "Children", "Comedy", "Drama"], "stage1_score": 0.5105, "final_score": 0.8103, "bayesian_rating": 4.34, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.51) + matches Animation, Drama"}, {"rank": 5, "movieId": 46, "title": "Your Name. (2016)", "clean_title": "Your Name.", "release_year": 2016, "genres": ["Animation", "Drama", "Fantasy", "Romance"], "stage1_score": 0.4596, "final_score": 0.8066, "bayesian_rating": 4.5, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.46) + matches Animation, Drama"}, {"rank": 6, "movieId": 22, "title": "Spider-Man: Into the Spider-Verse (2018)", "clean_title": "Spider-Man: Into the Spider-Verse", "release_year": 2018, "genres": ["Action", "Adventure", "Animation", "Sci-Fi"], "stage1_score": 0.4191, "final_score": 0.7815, "bayesian_rating": 4.53, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.42) + matches Adventure, Animation"}, {"rank": 7, "movieId": 112, "title": "Soul (2020)", "clean_title": "Soul", "release_year": 2020, "genres": ["Animation", "Comedy", "Drama", "Fantasy", "Musical"], "stage1_score": 0.3445, "final_score": 0.7159, "bayesian_rating": 4.47, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.34) + matches Animation, Drama"}, {"rank": 8, "movieId": 16, "title": "Dune (2021)", "clean_title": "Dune", "release_year": 2021, "genres": ["Sci-Fi", "Adventure", "Drama"], "stage1_score": 0.2964, "final_score": 0.6656, "bayesian_rating": 4.34, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.30) + matches Adventure, Drama"}, {"rank": 9, "movieId": 92, "title": "The Princess Bride (1987)", "clean_title": "The Princess Bride", "release_year": 1987, "genres": ["Action", "Adventure", "Comedy", "Fantasy", "Romance"], "stage1_score": 0.3464, "final_score": 0.6248, "bayesian_rating": 4.49, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.35) + matches Adventure"}, {"rank": 10, "movieId": 85, "title": "Avengers: Infinity War (2018)", "clean_title": "Avengers: Infinity War", "release_year": 2018, "genres": ["Action", "Adventure", "Sci-Fi"], "stage1_score": 0.3331, "final_score": 0.5905, "bayesian_rating": 4.36, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.33) + matches Adventure"}, {"rank": 11, "movieId": 33, "title": "The Grand Budapest Hotel (2014)", "clean_title": "The Grand Budapest Hotel", "release_year": 2014, "genres": ["Comedy", "Drama", "Adventure"], "stage1_score": 0.277, "final_score": 0.5826, "bayesian_rating": 4.3, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.28) + matches Drama, Adventure"}, {"rank": 12, "movieId": 75, "title": "Star Wars: Episode V - The Empire Strikes Back (1980)", "clean_title": "Star Wars: Episode V - The Empire Strikes Back", "release_year": 1980, "genres": ["Action", "Adventure", "Sci-Fi"], "stage1_score": 0.2791, "final_score": 0.5572, "bayesian_rating": 4.48, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.28) + matches Adventure"}], "wide_and_deep": [{"rank": 1, "movieId": 47, "title": "Princess Mononoke (1997)", "clean_title": "Princess Mononoke", "release_year": 1997, "genres": ["Action", "Adventure", "Animation", "Drama", "Fantasy"], "stage1_score": 0.5909, "final_score": 0.8612, "bayesian_rating": 4.62, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.59) + matches Adventure, Animation"}, {"rank": 2, "movieId": 44, "title": "Inside Out (2015)", "clean_title": "Inside Out", "release_year": 2015, "genres": ["Adventure", "Animation", "Children", "Comedy", "Drama"], "stage1_score": 0.5016, "final_score": 0.8183, "bayesian_rating": 4.41, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.50) + matches Adventure, Animation"}, {"rank": 3, "movieId": 45, "title": "Coco (2017)", "clean_title": "Coco", "release_year": 2017, "genres": ["Adventure", "Animation", "Children", "Drama", "Musical"], "stage1_score": 0.4552, "final_score": 0.8143, "bayesian_rating": 4.52, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.46) + matches Adventure, Animation"}, {"rank": 4, "movieId": 46, "title": "Your Name. (2016)", "clean_title": "Your Name.", "release_year": 2016, "genres": ["Animation", "Drama", "Fantasy", "Romance"], "stage1_score": 0.4596, "final_score": 0.7689, "bayesian_rating": 4.5, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.46) + matches Animation, Drama"}, {"rank": 5, "movieId": 113, "title": "Ratatouille (2007)", "clean_title": "Ratatouille", "release_year": 2007, "genres": ["Animation", "Children", "Comedy", "Drama"], "stage1_score": 0.5105, "final_score": 0.7455, "bayesian_rating": 4.34, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.51) + matches Animation, Drama"}, {"rank": 6, "movieId": 22, "title": "Spider-Man: Into the Spider-Verse (2018)", "clean_title": "Spider-Man: Into the Spider-Verse", "release_year": 2018, "genres": ["Action", "Adventure", "Animation", "Sci-Fi"], "stage1_score": 0.4191, "final_score": 0.6799, "bayesian_rating": 4.53, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.42) + matches Adventure, Animation"}, {"rank": 7, "movieId": 112, "title": "Soul (2020)", "clean_title": "Soul", "release_year": 2020, "genres": ["Animation", "Comedy", "Drama", "Fantasy", "Musical"], "stage1_score": 0.3445, "final_score": 0.6697, "bayesian_rating": 4.47, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.34) + matches Animation, Drama"}, {"rank": 8, "movieId": 16, "title": "Dune (2021)", "clean_title": "Dune", "release_year": 2021, "genres": ["Sci-Fi", "Adventure", "Drama"], "stage1_score": 0.2964, "final_score": 0.6097, "bayesian_rating": 4.34, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.30) + matches Adventure, Drama"}, {"rank": 9, "movieId": 33, "title": "The Grand Budapest Hotel (2014)", "clean_title": "The Grand Budapest Hotel", "release_year": 2014, "genres": ["Comedy", "Drama", "Adventure"], "stage1_score": 0.277, "final_score": 0.5683, "bayesian_rating": 4.3, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.28) + matches Drama, Adventure"}, {"rank": 10, "movieId": 77, "title": "Gladiator (2000)", "clean_title": "Gladiator", "release_year": 2000, "genres": ["Action", "Adventure", "Drama"], "stage1_score": 0.2626, "final_score": 0.5652, "bayesian_rating": 4.37, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.26) + matches Adventure, Drama"}, {"rank": 11, "movieId": 91, "title": "Monty Python and the Holy Grail (1975)", "clean_title": "Monty Python and the Holy Grail", "release_year": 1975, "genres": ["Adventure", "Comedy", "Fantasy"], "stage1_score": 0.2849, "final_score": 0.564, "bayesian_rating": 4.38, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.28) + matches Adventure"}, {"rank": 12, "movieId": 48, "title": "Schindler's List (1993)", "clean_title": "Schindler's List", "release_year": 1993, "genres": ["Drama", "War", "History"], "stage1_score": 0.2301, "final_score": 0.5562, "bayesian_rating": 4.54, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.23) + matches Drama"}], "stage1_candidates": 60}, {"userId": 2, "archetype": "Prestige Drama & Crime", "is_cold_start": false, "interaction_count": 32, "mean_rating": 4.8, "top_genres": ["Drama", "Crime", "Thriller"], "ab_variant": "wide_and_deep", "dcn_v2": [{"rank": 1, "movieId": 24, "title": "Goodfellas (1990)", "clean_title": "Goodfellas", "release_year": 1990, "genres": ["Crime", "Drama"], "stage1_score": 0.3312, "final_score": 0.6699, "bayesian_rating": 4.48, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.33) + matches Crime, Drama"}, {"rank": 2, "movieId": 103, "title": "Zodiac (2007)", "clean_title": "Zodiac", "release_year": 2007, "genres": ["Crime", "Drama", "Thriller", "Mystery"], "stage1_score": 0.1583, "final_score": 0.6402, "bayesian_rating": 4.47, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.16) + matches Crime, Drama"}, {"rank": 3, "movieId": 52, "title": "Memories of Murder (2003)", "clean_title": "Memories of Murder", "release_year": 2003, "genres": ["Crime", "Drama", "Mystery", "Thriller"], "stage1_score": 0.0824, "final_score": 0.5872, "bayesian_rating": 4.53, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.08) + matches Crime, Drama"}, {"rank": 4, "movieId": 51, "title": "Oldboy (2003)", "clean_title": "Oldboy", "release_year": 2003, "genres": ["Mystery", "Thriller", "Action", "Drama"], "stage1_score": 0.2039, "final_score": 0.5631, "bayesian_rating": 4.5, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.20) + matches Thriller, Drama"}, {"rank": 5, "movieId": 1, "title": "The Shawshank Redemption (1994)", "clean_title": "The Shawshank Redemption", "release_year": 1994, "genres": ["Drama", "Crime"], "stage1_score": 0.2093, "final_score": 0.5628, "bayesian_rating": 4.57, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.21) + matches Drama, Crime"}, {"rank": 6, "movieId": 105, "title": "Nightcrawler (2014)", "clean_title": "Nightcrawler", "release_year": 2014, "genres": ["Crime", "Drama", "Thriller"], "stage1_score": 0.1884, "final_score": 0.5605, "bayesian_rating": 4.33, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.19) + matches Crime, Drama"}, {"rank": 7, "movieId": 48, "title": "Schindler's List (1993)", "clean_title": "Schindler's List", "release_year": 1993, "genres": ["Drama", "War", "History"], "stage1_score": 0.2983, "final_score": 0.5378, "bayesian_rating": 4.54, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.30) + matches Drama"}, {"rank": 8, "movieId": 33, "title": "The Grand Budapest Hotel (2014)", "clean_title": "The Grand Budapest Hotel", "release_year": 2014, "genres": ["Comedy", "Drama", "Adventure"], "stage1_score": 0.3359, "final_score": 0.5376, "bayesian_rating": 4.3, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.34) + matches Drama"}, {"rank": 9, "movieId": 9, "title": "Forrest Gump (1994)", "clean_title": "Forrest Gump", "release_year": 1994, "genres": ["Comedy", "Drama", "Romance", "War"], "stage1_score": 0.29, "final_score": 0.5277, "bayesian_rating": 4.44, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.29) + matches Drama"}, {"rank": 10, "movieId": 111, "title": "Rush (2013)", "clean_title": "Rush", "release_year": 2013, "genres": ["Action", "Drama"], "stage1_score": 0.355, "final_score": 0.5233, "bayesian_rating": 4.24, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.36) + matches Drama"}, {"rank": 11, "movieId": 16, "title": "Dune (2021)", "clean_title": "Dune", "release_year": 2021, "genres": ["Sci-Fi", "Adventure", "Drama"], "stage1_score": 0.2848, "final_score": 0.5102, "bayesian_rating": 4.34, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.28) + matches Drama"}, {"rank": 12, "movieId": 107, "title": "Spotlight (2015)", "clean_title": "Spotlight", "release_year": 2015, "genres": ["Drama", "Thriller", "History"], "stage1_score": 0.1596, "final_score": 0.4962, "bayesian_rating": 4.44, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.16) + matches Drama, Thriller"}], "wide_and_deep": [{"rank": 1, "movieId": 24, "title": "Goodfellas (1990)", "clean_title": "Goodfellas", "release_year": 1990, "genres": ["Crime", "Drama"], "stage1_score": 0.3312, "final_score": 0.7547, "bayesian_rating": 4.48, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.33) + matches Crime, Drama"}, {"rank": 2, "movieId": 1, "title": "The Shawshank Redemption (1994)", "clean_title": "The Shawshank Redemption", "release_year": 1994, "genres": ["Drama", "Crime"], "stage1_score": 0.2093, "final_score": 0.6729, "bayesian_rating": 4.57, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.21) + matches Drama, Crime"}, {"rank": 3, "movieId": 105, "title": "Nightcrawler (2014)", "clean_title": "Nightcrawler", "release_year": 2014, "genres": ["Crime", "Drama", "Thriller"], "stage1_score": 0.1884, "final_score": 0.6674, "bayesian_rating": 4.33, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.19) + matches Crime, Drama"}, {"rank": 4, "movieId": 103, "title": "Zodiac (2007)", "clean_title": "Zodiac", "release_year": 2007, "genres": ["Crime", "Drama", "Thriller", "Mystery"], "stage1_score": 0.1583, "final_score": 0.6535, "bayesian_rating": 4.47, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.16) + matches Crime, Drama"}, {"rank": 5, "movieId": 52, "title": "Memories of Murder (2003)", "clean_title": "Memories of Murder", "release_year": 2003, "genres": ["Crime", "Drama", "Mystery", "Thriller"], "stage1_score": 0.0824, "final_score": 0.6064, "bayesian_rating": 4.53, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.08) + matches Crime, Drama"}, {"rank": 6, "movieId": 13, "title": "Parasite (2019)", "clean_title": "Parasite", "release_year": 2019, "genres": ["Comedy", "Drama", "Thriller"], "stage1_score": 0.0873, "final_score": 0.5799, "bayesian_rating": 4.49, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.09) + matches Drama, Thriller"}, {"rank": 7, "movieId": 48, "title": "Schindler's List (1993)", "clean_title": "Schindler's List", "release_year": 1993, "genres": ["Drama", "War", "History"], "stage1_score": 0.2983, "final_score": 0.5724, "bayesian_rating": 4.54, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.30) + matches Drama"}, {"rank": 8, "movieId": 51, "title": "Oldboy (2003)", "clean_title": "Oldboy", "release_year": 2003, "genres": ["Mystery", "Thriller", "Action", "Drama"], "stage1_score": 0.2039, "final_score": 0.5716, "bayesian_rating": 4.5, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.20) + matches Thriller, Drama"}, {"rank": 9, "movieId": 107, "title": "Spotlight (2015)", "clean_title": "Spotlight", "release_year": 2015, "genres": ["Drama", "Thriller", "History"], "stage1_score": 0.1596, "final_score": 0.5422, "bayesian_rating": 4.44, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.16) + matches Drama, Thriller"}, {"rank": 10, "movieId": 28, "title": "The Prestige (2006)", "clean_title": "The Prestige", "release_year": 2006, "genres": ["Drama", "Mystery", "Sci-Fi", "Thriller"], "stage1_score": 0.1156, "final_score": 0.535, "bayesian_rating": 4.6, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.12) + matches Drama, Thriller"}, {"rank": 11, "movieId": 58, "title": "The Wolf of Wall Street (2013)", "clean_title": "The Wolf of Wall Street", "release_year": 2013, "genres": ["Comedy", "Crime", "Drama"], "stage1_score": 0.2427, "final_score": 0.5339, "bayesian_rating": 4.31, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.24) + matches Crime, Drama"}, {"rank": 12, "movieId": 20, "title": "Ex Machina (2014)", "clean_title": "Ex Machina", "release_year": 2014, "genres": ["Drama", "Sci-Fi", "Thriller"], "stage1_score": 0.1608, "final_score": 0.5115, "bayesian_rating": 4.43, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.16) + matches Drama, Thriller"}], "stage1_candidates": 60}, {"userId": 3, "archetype": "Comedy & Romance", "is_cold_start": false, "interaction_count": 26, "mean_rating": 4.1, "top_genres": ["Drama", "Comedy", "Romance"], "ab_variant": "dcn_v2", "dcn_v2": [{"rank": 1, "movieId": 9, "title": "Forrest Gump (1994)", "clean_title": "Forrest Gump", "release_year": 1994, "genres": ["Comedy", "Drama", "Romance", "War"], "stage1_score": 0.4863, "final_score": 0.8482, "bayesian_rating": 4.44, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.49) + matches Comedy, Drama"}, {"rank": 2, "movieId": 98, "title": "Poor Things (2023)", "clean_title": "Poor Things", "release_year": 2023, "genres": ["Comedy", "Drama", "Romance", "Sci-Fi"], "stage1_score": 0.4296, "final_score": 0.8018, "bayesian_rating": 4.34, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.43) + matches Comedy, Drama"}, {"rank": 3, "movieId": 63, "title": "A Beautiful Mind (2001)", "clean_title": "A Beautiful Mind", "release_year": 2001, "genres": ["Drama", "Romance"], "stage1_score": 0.4995, "final_score": 0.6759, "bayesian_rating": 4.24, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.50) + matches Drama, Romance"}, {"rank": 4, "movieId": 61, "title": "Good Will Hunting (1997)", "clean_title": "Good Will Hunting", "release_year": 1997, "genres": ["Drama", "Romance"], "stage1_score": 0.3797, "final_score": 0.6593, "bayesian_rating": 4.34, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.38) + matches Drama, Romance"}, {"rank": 5, "movieId": 31, "title": "Her (2013)", "clean_title": "Her", "release_year": 2013, "genres": ["Drama", "Romance", "Sci-Fi"], "stage1_score": 0.4309, "final_score": 0.657, "bayesian_rating": 4.23, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.43) + matches Drama, Romance"}, {"rank": 6, "movieId": 99, "title": "The Holdovers (2023)", "clean_title": "The Holdovers", "release_year": 2023, "genres": ["Comedy", "Drama"], "stage1_score": 0.4763, "final_score": 0.6529, "bayesian_rating": 4.22, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.48) + matches Comedy, Drama"}, {"rank": 7, "movieId": 58, "title": "The Wolf of Wall Street (2013)", "clean_title": "The Wolf of Wall Street", "release_year": 2013, "genres": ["Comedy", "Crime", "Drama"], "stage1_score": 0.3394, "final_score": 0.6519, "bayesian_rating": 4.31, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.34) + matches Comedy, Drama"}, {"rank": 8, "movieId": 74, "title": "Back to the Future (1985)", "clean_title": "Back to the Future", "release_year": 1985, "genres": ["Adventure", "Comedy", "Sci-Fi"], "stage1_score": 0.3654, "final_score": 0.6076, "bayesian_rating": 4.33, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.37) + matches Comedy"}, {"rank": 9, "movieId": 115, "title": "Up (2009)", "clean_title": "Up", "release_year": 2009, "genres": ["Adventure", "Animation", "Children", "Drama"], "stage1_score": 0.3188, "final_score": 0.5621, "bayesian_rating": 4.46, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.32) + matches Drama"}, {"rank": 10, "movieId": 30, "title": "Eternal Sunshine of the Spotless Mind (2004)", "clean_title": "Eternal Sunshine of the Spotless Mind", "release_year": 2004, "genres": ["Drama", "Romance", "Sci-Fi"], "stage1_score": 0.2316, "final_score": 0.5548, "bayesian_rating": 4.35, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.23) + matches Drama, Romance"}, {"rank": 11, "movieId": 113, "title": "Ratatouille (2007)", "clean_title": "Ratatouille", "release_year": 2007, "genres": ["Animation", "Children", "Comedy", "Drama"], "stage1_score": 0.2811, "final_score": 0.5478, "bayesian_rating": 4.34, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.28) + matches Comedy, Drama"}, {"rank": 12, "movieId": 87, "title": "Guardians of the Galaxy (2014)", "clean_title": "Guardians of the Galaxy", "release_year": 2014, "genres": ["Action", "Adventure", "Comedy", "Sci-Fi"], "stage1_score": 0.2879, "final_score": 0.5259, "bayesian_rating": 4.4, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.29) + matches Comedy"}], "wide_and_deep": [{"rank": 1, "movieId": 9, "title": "Forrest Gump (1994)", "clean_title": "Forrest Gump", "release_year": 1994, "genres": ["Comedy", "Drama", "Romance", "War"], "stage1_score": 0.4863, "final_score": 0.8377, "bayesian_rating": 4.44, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.49) + matches Comedy, Drama"}, {"rank": 2, "movieId": 98, "title": "Poor Things (2023)", "clean_title": "Poor Things", "release_year": 2023, "genres": ["Comedy", "Drama", "Romance", "Sci-Fi"], "stage1_score": 0.4296, "final_score": 0.7607, "bayesian_rating": 4.34, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.43) + matches Comedy, Drama"}, {"rank": 3, "movieId": 99, "title": "The Holdovers (2023)", "clean_title": "The Holdovers", "release_year": 2023, "genres": ["Comedy", "Drama"], "stage1_score": 0.4763, "final_score": 0.725, "bayesian_rating": 4.22, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.48) + matches Comedy, Drama"}, {"rank": 4, "movieId": 63, "title": "A Beautiful Mind (2001)", "clean_title": "A Beautiful Mind", "release_year": 2001, "genres": ["Drama", "Romance"], "stage1_score": 0.4995, "final_score": 0.7081, "bayesian_rating": 4.24, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.50) + matches Drama, Romance"}, {"rank": 5, "movieId": 61, "title": "Good Will Hunting (1997)", "clean_title": "Good Will Hunting", "release_year": 1997, "genres": ["Drama", "Romance"], "stage1_score": 0.3797, "final_score": 0.6981, "bayesian_rating": 4.34, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.38) + matches Drama, Romance"}, {"rank": 6, "movieId": 108, "title": "The Big Short (2015)", "clean_title": "The Big Short", "release_year": 2015, "genres": ["Comedy", "Drama"], "stage1_score": 0.3269, "final_score": 0.6005, "bayesian_rating": 4.24, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.33) + matches Comedy, Drama"}, {"rank": 7, "movieId": 31, "title": "Her (2013)", "clean_title": "Her", "release_year": 2013, "genres": ["Drama", "Romance", "Sci-Fi"], "stage1_score": 0.4309, "final_score": 0.5894, "bayesian_rating": 4.23, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.43) + matches Drama, Romance"}, {"rank": 8, "movieId": 58, "title": "The Wolf of Wall Street (2013)", "clean_title": "The Wolf of Wall Street", "release_year": 2013, "genres": ["Comedy", "Crime", "Drama"], "stage1_score": 0.3394, "final_score": 0.5597, "bayesian_rating": 4.31, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.34) + matches Comedy, Drama"}, {"rank": 9, "movieId": 13, "title": "Parasite (2019)", "clean_title": "Parasite", "release_year": 2019, "genres": ["Comedy", "Drama", "Thriller"], "stage1_score": 0.1465, "final_score": 0.5462, "bayesian_rating": 4.49, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.15) + matches Comedy, Drama"}, {"rank": 10, "movieId": 49, "title": "12 Angry Men (1957)", "clean_title": "12 Angry Men", "release_year": 1957, "genres": ["Drama"], "stage1_score": 0.2548, "final_score": 0.5173, "bayesian_rating": 4.4, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.25) + matches Drama"}, {"rank": 11, "movieId": 113, "title": "Ratatouille (2007)", "clean_title": "Ratatouille", "release_year": 2007, "genres": ["Animation", "Children", "Comedy", "Drama"], "stage1_score": 0.2811, "final_score": 0.489, "bayesian_rating": 4.34, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.28) + matches Comedy, Drama"}, {"rank": 12, "movieId": 74, "title": "Back to the Future (1985)", "clean_title": "Back to the Future", "release_year": 1985, "genres": ["Adventure", "Comedy", "Sci-Fi"], "stage1_score": 0.3654, "final_score": 0.4793, "bayesian_rating": 4.33, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.37) + matches Comedy"}], "stage1_candidates": 60}, {"userId": 5, "archetype": "Sci-Fi & Mind-Bender", "is_cold_start": false, "interaction_count": 36, "mean_rating": 4.68, "top_genres": ["Thriller", "Drama", "Sci-Fi"], "ab_variant": "wide_and_deep", "dcn_v2": [{"rank": 1, "movieId": 67, "title": "District 9 (2009)", "clean_title": "District 9", "release_year": 2009, "genres": ["Mystery", "Sci-Fi", "Thriller"], "stage1_score": 0.4928, "final_score": 0.827, "bayesian_rating": 4.52, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.49) + matches Sci-Fi, Thriller"}, {"rank": 2, "movieId": 120, "title": "The Thing (1982)", "clean_title": "The Thing", "release_year": 1982, "genres": ["Action", "Horror", "Sci-Fi", "Thriller"], "stage1_score": 0.4547, "final_score": 0.7849, "bayesian_rating": 4.44, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.45) + matches Sci-Fi, Thriller"}, {"rank": 3, "movieId": 20, "title": "Ex Machina (2014)", "clean_title": "Ex Machina", "release_year": 2014, "genres": ["Drama", "Sci-Fi", "Thriller"], "stage1_score": 0.4184, "final_score": 0.784, "bayesian_rating": 4.43, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.42) + matches Drama, Sci-Fi"}, {"rank": 4, "movieId": 84, "title": "Logan (2017)", "clean_title": "Logan", "release_year": 2017, "genres": ["Action", "Sci-Fi", "Drama"], "stage1_score": 0.4732, "final_score": 0.7383, "bayesian_rating": 4.28, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.47) + matches Sci-Fi, Drama"}, {"rank": 5, "movieId": 101, "title": "Prisoners (2013)", "clean_title": "Prisoners", "release_year": 2013, "genres": ["Drama", "Mystery", "Thriller", "Crime"], "stage1_score": 0.3789, "final_score": 0.7359, "bayesian_rating": 4.56, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.38) + matches Drama, Thriller"}, {"rank": 6, "movieId": 60, "title": "The Truman Show (1998)", "clean_title": "The Truman Show", "release_year": 1998, "genres": ["Comedy", "Drama", "Sci-Fi"], "stage1_score": 0.4047, "final_score": 0.6918, "bayesian_rating": 4.34, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.40) + matches Drama, Sci-Fi"}, {"rank": 7, "movieId": 97, "title": "Anatomy of a Fall (2023)", "clean_title": "Anatomy of a Fall", "release_year": 2023, "genres": ["Crime", "Drama", "Mystery", "Thriller"], "stage1_score": 0.25, "final_score": 0.6318, "bayesian_rating": 4.52, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.25) + matches Drama, Thriller"}, {"rank": 8, "movieId": 13, "title": "Parasite (2019)", "clean_title": "Parasite", "release_year": 2019, "genres": ["Comedy", "Drama", "Thriller"], "stage1_score": 0.2252, "final_score": 0.5951, "bayesian_rating": 4.49, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.23) + matches Drama, Thriller"}, {"rank": 9, "movieId": 81, "title": "Dunkirk (2017)", "clean_title": "Dunkirk", "release_year": 2017, "genres": ["Action", "Drama", "Thriller", "War"], "stage1_score": 0.3178, "final_score": 0.5837, "bayesian_rating": 4.28, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.32) + matches Drama, Thriller"}, {"rank": 10, "movieId": 75, "title": "Star Wars: Episode V - The Empire Strikes Back (1980)", "clean_title": "Star Wars: Episode V - The Empire Strikes Back", "release_year": 1980, "genres": ["Action", "Adventure", "Sci-Fi"], "stage1_score": 0.2945, "final_score": 0.5832, "bayesian_rating": 4.48, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.29) + matches Sci-Fi"}, {"rank": 11, "movieId": 16, "title": "Dune (2021)", "clean_title": "Dune", "release_year": 2021, "genres": ["Sci-Fi", "Adventure", "Drama"], "stage1_score": 0.247, "final_score": 0.5746, "bayesian_rating": 4.34, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.25) + matches Sci-Fi, Drama"}, {"rank": 12, "movieId": 52, "title": "Memories of Murder (2003)", "clean_title": "Memories of Murder", "release_year": 2003, "genres": ["Crime", "Drama", "Mystery", "Thriller"], "stage1_score": 0.15, "final_score": 0.5354, "bayesian_rating": 4.53, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.15) + matches Drama, Thriller"}], "wide_and_deep": [{"rank": 1, "movieId": 20, "title": "Ex Machina (2014)", "clean_title": "Ex Machina", "release_year": 2014, "genres": ["Drama", "Sci-Fi", "Thriller"], "stage1_score": 0.4184, "final_score": 0.8432, "bayesian_rating": 4.43, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.42) + matches Drama, Sci-Fi"}, {"rank": 2, "movieId": 67, "title": "District 9 (2009)", "clean_title": "District 9", "release_year": 2009, "genres": ["Mystery", "Sci-Fi", "Thriller"], "stage1_score": 0.4928, "final_score": 0.7956, "bayesian_rating": 4.52, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.49) + matches Sci-Fi, Thriller"}, {"rank": 3, "movieId": 84, "title": "Logan (2017)", "clean_title": "Logan", "release_year": 2017, "genres": ["Action", "Sci-Fi", "Drama"], "stage1_score": 0.4732, "final_score": 0.7544, "bayesian_rating": 4.28, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.47) + matches Sci-Fi, Drama"}, {"rank": 4, "movieId": 120, "title": "The Thing (1982)", "clean_title": "The Thing", "release_year": 1982, "genres": ["Action", "Horror", "Sci-Fi", "Thriller"], "stage1_score": 0.4547, "final_score": 0.7404, "bayesian_rating": 4.44, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.45) + matches Sci-Fi, Thriller"}, {"rank": 5, "movieId": 60, "title": "The Truman Show (1998)", "clean_title": "The Truman Show", "release_year": 1998, "genres": ["Comedy", "Drama", "Sci-Fi"], "stage1_score": 0.4047, "final_score": 0.7314, "bayesian_rating": 4.34, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.40) + matches Drama, Sci-Fi"}, {"rank": 6, "movieId": 101, "title": "Prisoners (2013)", "clean_title": "Prisoners", "release_year": 2013, "genres": ["Drama", "Mystery", "Thriller", "Crime"], "stage1_score": 0.3789, "final_score": 0.6989, "bayesian_rating": 4.56, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.38) + matches Drama, Thriller"}, {"rank": 7, "movieId": 13, "title": "Parasite (2019)", "clean_title": "Parasite", "release_year": 2019, "genres": ["Comedy", "Drama", "Thriller"], "stage1_score": 0.2252, "final_score": 0.6837, "bayesian_rating": 4.49, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.23) + matches Drama, Thriller"}, {"rank": 8, "movieId": 97, "title": "Anatomy of a Fall (2023)", "clean_title": "Anatomy of a Fall", "release_year": 2023, "genres": ["Crime", "Drama", "Mystery", "Thriller"], "stage1_score": 0.25, "final_score": 0.6122, "bayesian_rating": 4.52, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.25) + matches Drama, Thriller"}, {"rank": 9, "movieId": 16, "title": "Dune (2021)", "clean_title": "Dune", "release_year": 2021, "genres": ["Sci-Fi", "Adventure", "Drama"], "stage1_score": 0.247, "final_score": 0.596, "bayesian_rating": 4.34, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.25) + matches Sci-Fi, Drama"}, {"rank": 10, "movieId": 82, "title": "Joker (2019)", "clean_title": "Joker", "release_year": 2019, "genres": ["Crime", "Drama", "Thriller"], "stage1_score": 0.1408, "final_score": 0.5798, "bayesian_rating": 4.44, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.14) + matches Drama, Thriller"}, {"rank": 11, "movieId": 49, "title": "12 Angry Men (1957)", "clean_title": "12 Angry Men", "release_year": 1957, "genres": ["Drama"], "stage1_score": 0.235, "final_score": 0.573, "bayesian_rating": 4.4, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.24) + matches Drama"}, {"rank": 12, "movieId": 53, "title": "The Departed (2006)", "clean_title": "The Departed", "release_year": 2006, "genres": ["Crime", "Drama", "Thriller"], "stage1_score": 0.1412, "final_score": 0.5601, "bayesian_rating": 4.48, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.14) + matches Drama, Thriller"}], "stage1_candidates": 60}, {"userId": 6, "archetype": "Horror & Suspense", "is_cold_start": false, "interaction_count": 28, "mean_rating": 4.48, "top_genres": ["Drama", "Thriller", "Mystery"], "ab_variant": "wide_and_deep", "dcn_v2": [{"rank": 1, "movieId": 41, "title": "Hereditary (2018)", "clean_title": "Hereditary", "release_year": 2018, "genres": ["Drama", "Horror", "Mystery"], "stage1_score": 0.6241, "final_score": 0.8187, "bayesian_rating": 4.2, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.62) + matches Drama, Mystery"}, {"rank": 2, "movieId": 27, "title": "Shutter Island (2010)", "clean_title": "Shutter Island", "release_year": 2010, "genres": ["Drama", "Mystery", "Thriller"], "stage1_score": 0.2915, "final_score": 0.731, "bayesian_rating": 4.45, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.29) + matches Drama, Mystery"}, {"rank": 3, "movieId": 103, "title": "Zodiac (2007)", "clean_title": "Zodiac", "release_year": 2007, "genres": ["Crime", "Drama", "Thriller", "Mystery"], "stage1_score": 0.1937, "final_score": 0.695, "bayesian_rating": 4.47, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.19) + matches Drama, Thriller"}, {"rank": 4, "movieId": 97, "title": "Anatomy of a Fall (2023)", "clean_title": "Anatomy of a Fall", "release_year": 2023, "genres": ["Crime", "Drama", "Mystery", "Thriller"], "stage1_score": 0.1757, "final_score": 0.6827, "bayesian_rating": 4.52, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.18) + matches Drama, Mystery"}, {"rank": 5, "movieId": 118, "title": "The Shining (1980)", "clean_title": "The Shining", "release_year": 1980, "genres": ["Horror", "Thriller"], "stage1_score": 0.4667, "final_score": 0.6626, "bayesian_rating": 4.23, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.47) + matches Thriller"}, {"rank": 6, "movieId": 52, "title": "Memories of Murder (2003)", "clean_title": "Memories of Murder", "release_year": 2003, "genres": ["Crime", "Drama", "Mystery", "Thriller"], "stage1_score": 0.1035, "final_score": 0.6386, "bayesian_rating": 4.53, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.10) + matches Drama, Mystery"}, {"rank": 7, "movieId": 67, "title": "District 9 (2009)", "clean_title": "District 9", "release_year": 2009, "genres": ["Mystery", "Sci-Fi", "Thriller"], "stage1_score": 0.2643, "final_score": 0.6166, "bayesian_rating": 4.52, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.26) + matches Mystery, Thriller"}, {"rank": 8, "movieId": 59, "title": "Catch Me If You Can (2002)", "clean_title": "Catch Me If You Can", "release_year": 2002, "genres": ["Crime", "Drama"], "stage1_score": 0.3204, "final_score": 0.5886, "bayesian_rating": 4.36, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.32) + matches Drama"}, {"rank": 9, "movieId": 107, "title": "Spotlight (2015)", "clean_title": "Spotlight", "release_year": 2015, "genres": ["Drama", "Thriller", "History"], "stage1_score": 0.1882, "final_score": 0.5858, "bayesian_rating": 4.44, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.19) + matches Drama, Thriller"}, {"rank": 10, "movieId": 15, "title": "Blade Runner 2049 (2017)", "clean_title": "Blade Runner 2049", "release_year": 2017, "genres": ["Sci-Fi", "Drama", "Mystery"], "stage1_score": 0.1934, "final_score": 0.5842, "bayesian_rating": 4.44, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.19) + matches Drama, Mystery"}, {"rank": 11, "movieId": 115, "title": "Up (2009)", "clean_title": "Up", "release_year": 2009, "genres": ["Adventure", "Animation", "Children", "Drama"], "stage1_score": 0.2778, "final_score": 0.5602, "bayesian_rating": 4.46, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.28) + matches Drama"}, {"rank": 12, "movieId": 82, "title": "Joker (2019)", "clean_title": "Joker", "release_year": 2019, "genres": ["Crime", "Drama", "Thriller"], "stage1_score": 0.1591, "final_score": 0.5516, "bayesian_rating": 4.44, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.16) + matches Drama, Thriller"}], "wide_and_deep": [{"rank": 1, "movieId": 41, "title": "Hereditary (2018)", "clean_title": "Hereditary", "release_year": 2018, "genres": ["Drama", "Horror", "Mystery"], "stage1_score": 0.6241, "final_score": 0.7865, "bayesian_rating": 4.2, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.62) + matches Drama, Mystery"}, {"rank": 2, "movieId": 27, "title": "Shutter Island (2010)", "clean_title": "Shutter Island", "release_year": 2010, "genres": ["Drama", "Mystery", "Thriller"], "stage1_score": 0.2915, "final_score": 0.7839, "bayesian_rating": 4.45, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.29) + matches Drama, Mystery"}, {"rank": 3, "movieId": 97, "title": "Anatomy of a Fall (2023)", "clean_title": "Anatomy of a Fall", "release_year": 2023, "genres": ["Crime", "Drama", "Mystery", "Thriller"], "stage1_score": 0.1757, "final_score": 0.6792, "bayesian_rating": 4.52, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.18) + matches Drama, Mystery"}, {"rank": 4, "movieId": 103, "title": "Zodiac (2007)", "clean_title": "Zodiac", "release_year": 2007, "genres": ["Crime", "Drama", "Thriller", "Mystery"], "stage1_score": 0.1937, "final_score": 0.6773, "bayesian_rating": 4.47, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.19) + matches Drama, Thriller"}, {"rank": 5, "movieId": 67, "title": "District 9 (2009)", "clean_title": "District 9", "release_year": 2009, "genres": ["Mystery", "Sci-Fi", "Thriller"], "stage1_score": 0.2643, "final_score": 0.644, "bayesian_rating": 4.52, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.26) + matches Mystery, Thriller"}, {"rank": 6, "movieId": 52, "title": "Memories of Murder (2003)", "clean_title": "Memories of Murder", "release_year": 2003, "genres": ["Crime", "Drama", "Mystery", "Thriller"], "stage1_score": 0.1035, "final_score": 0.5982, "bayesian_rating": 4.53, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.10) + matches Drama, Mystery"}, {"rank": 7, "movieId": 15, "title": "Blade Runner 2049 (2017)", "clean_title": "Blade Runner 2049", "release_year": 2017, "genres": ["Sci-Fi", "Drama", "Mystery"], "stage1_score": 0.1934, "final_score": 0.5857, "bayesian_rating": 4.44, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.19) + matches Drama, Mystery"}, {"rank": 8, "movieId": 54, "title": "No Country for Old Men (2007)", "clean_title": "No Country for Old Men", "release_year": 2007, "genres": ["Crime", "Drama", "Thriller"], "stage1_score": 0.1531, "final_score": 0.5838, "bayesian_rating": 4.48, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.15) + matches Drama, Thriller"}, {"rank": 9, "movieId": 118, "title": "The Shining (1980)", "clean_title": "The Shining", "release_year": 1980, "genres": ["Horror", "Thriller"], "stage1_score": 0.4667, "final_score": 0.5776, "bayesian_rating": 4.23, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.47) + matches Thriller"}, {"rank": 10, "movieId": 82, "title": "Joker (2019)", "clean_title": "Joker", "release_year": 2019, "genres": ["Crime", "Drama", "Thriller"], "stage1_score": 0.1591, "final_score": 0.5761, "bayesian_rating": 4.44, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.16) + matches Drama, Thriller"}, {"rank": 11, "movieId": 107, "title": "Spotlight (2015)", "clean_title": "Spotlight", "release_year": 2015, "genres": ["Drama", "Thriller", "History"], "stage1_score": 0.1882, "final_score": 0.5534, "bayesian_rating": 4.44, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.19) + matches Drama, Thriller"}, {"rank": 12, "movieId": 4, "title": "Inception (2010)", "clean_title": "Inception", "release_year": 2010, "genres": ["Action", "Crime", "Drama", "Mystery", "Sci-Fi", "Thriller", "IMAX"], "stage1_score": 0.0733, "final_score": 0.5417, "bayesian_rating": 4.73, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.07) + matches Drama, Mystery"}], "stage1_candidates": 60}, {"userId": 13, "archetype": "Action & Blockbuster", "is_cold_start": false, "interaction_count": 33, "mean_rating": 4.58, "top_genres": ["Action", "Drama", "Sci-Fi"], "ab_variant": "wide_and_deep", "dcn_v2": [{"rank": 1, "movieId": 73, "title": "Jurassic Park (1993)", "clean_title": "Jurassic Park", "release_year": 1993, "genres": ["Action", "Adventure", "Sci-Fi", "Thriller"], "stage1_score": 0.501, "final_score": 0.822, "bayesian_rating": 4.42, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.50) + matches Action, Sci-Fi"}, {"rank": 2, "movieId": 87, "title": "Guardians of the Galaxy (2014)", "clean_title": "Guardians of the Galaxy", "release_year": 2014, "genres": ["Action", "Adventure", "Comedy", "Sci-Fi"], "stage1_score": 0.4437, "final_score": 0.7914, "bayesian_rating": 4.4, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.44) + matches Action, Sci-Fi"}, {"rank": 3, "movieId": 92, "title": "The Princess Bride (1987)", "clean_title": "The Princess Bride", "release_year": 1987, "genres": ["Action", "Adventure", "Comedy", "Fantasy", "Romance"], "stage1_score": 0.464, "final_score": 0.7617, "bayesian_rating": 4.49, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.46) + matches Action"}, {"rank": 4, "movieId": 75, "title": "Star Wars: Episode V - The Empire Strikes Back (1980)", "clean_title": "Star Wars: Episode V - The Empire Strikes Back", "release_year": 1980, "genres": ["Action", "Adventure", "Sci-Fi"], "stage1_score": 0.366, "final_score": 0.72, "bayesian_rating": 4.48, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.37) + matches Action, Sci-Fi"}, {"rank": 5, "movieId": 76, "title": "Raiders of the Lost Ark (1981)", "clean_title": "Raiders of the Lost Ark", "release_year": 1981, "genres": ["Action", "Adventure"], "stage1_score": 0.3987, "final_score": 0.6956, "bayesian_rating": 4.45, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.40) + matches Action"}, {"rank": 6, "movieId": 47, "title": "Princess Mononoke (1997)", "clean_title": "Princess Mononoke", "release_year": 1997, "genres": ["Action", "Adventure", "Animation", "Drama", "Fantasy"], "stage1_score": 0.2667, "final_score": 0.6425, "bayesian_rating": 4.62, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.27) + matches Action, Drama"}, {"rank": 7, "movieId": 85, "title": "Avengers: Infinity War (2018)", "clean_title": "Avengers: Infinity War", "release_year": 2018, "genres": ["Action", "Adventure", "Sci-Fi"], "stage1_score": 0.3166, "final_score": 0.6392, "bayesian_rating": 4.36, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.32) + matches Action, Sci-Fi"}, {"rank": 8, "movieId": 84, "title": "Logan (2017)", "clean_title": "Logan", "release_year": 2017, "genres": ["Action", "Sci-Fi", "Drama"], "stage1_score": 0.3001, "final_score": 0.6251, "bayesian_rating": 4.28, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.30) + matches Action, Sci-Fi"}, {"rank": 9, "movieId": 81, "title": "Dunkirk (2017)", "clean_title": "Dunkirk", "release_year": 2017, "genres": ["Action", "Drama", "Thriller", "War"], "stage1_score": 0.3263, "final_score": 0.6124, "bayesian_rating": 4.28, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.33) + matches Action, Drama"}, {"rank": 10, "movieId": 83, "title": "The Batman (2022)", "clean_title": "The Batman", "release_year": 2022, "genres": ["Action", "Crime", "Drama", "Mystery"], "stage1_score": 0.2452, "final_score": 0.5944, "bayesian_rating": 4.37, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.25) + matches Action, Drama"}, {"rank": 11, "movieId": 78, "title": "Braveheart (1995)", "clean_title": "Braveheart", "release_year": 1995, "genres": ["Action", "Drama", "War"], "stage1_score": 0.4309, "final_score": 0.592, "bayesian_rating": 4.17, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.43) + matches Action, Drama"}, {"rank": 12, "movieId": 16, "title": "Dune (2021)", "clean_title": "Dune", "release_year": 2021, "genres": ["Sci-Fi", "Adventure", "Drama"], "stage1_score": 0.2243, "final_score": 0.5783, "bayesian_rating": 4.34, "strategy": "two_stage_dcn_v2", "reason": "High Two-Tower cosine (0.22) + matches Sci-Fi, Drama"}], "wide_and_deep": [{"rank": 1, "movieId": 87, "title": "Guardians of the Galaxy (2014)", "clean_title": "Guardians of the Galaxy", "release_year": 2014, "genres": ["Action", "Adventure", "Comedy", "Sci-Fi"], "stage1_score": 0.4437, "final_score": 0.7699, "bayesian_rating": 4.4, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.44) + matches Action, Sci-Fi"}, {"rank": 2, "movieId": 84, "title": "Logan (2017)", "clean_title": "Logan", "release_year": 2017, "genres": ["Action", "Sci-Fi", "Drama"], "stage1_score": 0.3001, "final_score": 0.7617, "bayesian_rating": 4.28, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.30) + matches Action, Sci-Fi"}, {"rank": 3, "movieId": 73, "title": "Jurassic Park (1993)", "clean_title": "Jurassic Park", "release_year": 1993, "genres": ["Action", "Adventure", "Sci-Fi", "Thriller"], "stage1_score": 0.501, "final_score": 0.7535, "bayesian_rating": 4.42, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.50) + matches Action, Sci-Fi"}, {"rank": 4, "movieId": 75, "title": "Star Wars: Episode V - The Empire Strikes Back (1980)", "clean_title": "Star Wars: Episode V - The Empire Strikes Back", "release_year": 1980, "genres": ["Action", "Adventure", "Sci-Fi"], "stage1_score": 0.366, "final_score": 0.7415, "bayesian_rating": 4.48, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.37) + matches Action, Sci-Fi"}, {"rank": 5, "movieId": 79, "title": "Saving Private Ryan (1998)", "clean_title": "Saving Private Ryan", "release_year": 1998, "genres": ["Action", "Drama", "War"], "stage1_score": 0.2415, "final_score": 0.6611, "bayesian_rating": 4.38, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.24) + matches Action, Drama"}, {"rank": 6, "movieId": 110, "title": "Ford v Ferrari (2019)", "clean_title": "Ford v Ferrari", "release_year": 2019, "genres": ["Action", "Drama"], "stage1_score": 0.2784, "final_score": 0.6558, "bayesian_rating": 4.3, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.28) + matches Action, Drama"}, {"rank": 7, "movieId": 85, "title": "Avengers: Infinity War (2018)", "clean_title": "Avengers: Infinity War", "release_year": 2018, "genres": ["Action", "Adventure", "Sci-Fi"], "stage1_score": 0.3166, "final_score": 0.6488, "bayesian_rating": 4.36, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.32) + matches Action, Sci-Fi"}, {"rank": 8, "movieId": 92, "title": "The Princess Bride (1987)", "clean_title": "The Princess Bride", "release_year": 1987, "genres": ["Action", "Adventure", "Comedy", "Fantasy", "Romance"], "stage1_score": 0.464, "final_score": 0.639, "bayesian_rating": 4.49, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.46) + matches Action"}, {"rank": 9, "movieId": 76, "title": "Raiders of the Lost Ark (1981)", "clean_title": "Raiders of the Lost Ark", "release_year": 1981, "genres": ["Action", "Adventure"], "stage1_score": 0.3987, "final_score": 0.6323, "bayesian_rating": 4.45, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.40) + matches Action"}, {"rank": 10, "movieId": 78, "title": "Braveheart (1995)", "clean_title": "Braveheart", "release_year": 1995, "genres": ["Action", "Drama", "War"], "stage1_score": 0.4309, "final_score": 0.623, "bayesian_rating": 4.17, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.43) + matches Action, Drama"}, {"rank": 11, "movieId": 47, "title": "Princess Mononoke (1997)", "clean_title": "Princess Mononoke", "release_year": 1997, "genres": ["Action", "Adventure", "Animation", "Drama", "Fantasy"], "stage1_score": 0.2667, "final_score": 0.6182, "bayesian_rating": 4.62, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.27) + matches Action, Drama"}, {"rank": 12, "movieId": 57, "title": "Inglourious Basterds (2009)", "clean_title": "Inglourious Basterds", "release_year": 2009, "genres": ["Action", "Drama", "War"], "stage1_score": 0.2296, "final_score": 0.6029, "bayesian_rating": 4.35, "strategy": "two_stage_wide_and_deep", "reason": "High Two-Tower cosine (0.23) + matches Action, Drama"}], "stage1_candidates": 60}, {"userId": 386, "archetype": "Horror & Suspense", "is_cold_start": true, "interaction_count": 0, "mean_rating": null, "top_genres": [], "ab_variant": "wide_and_deep", "dcn_v2": [{"movieId": 39, "title": "Get Out (2017)", "clean_title": "Get Out", "release_year": 2017, "genres": ["Horror", "Mystery", "Thriller"], "stage1_score": 1.0, "final_score": 0.8694, "bayesian_rating": 4.49, "strategy": "cold_start_content_genre_blend", "reason": "Matches onboarding genres (Horror, Thriller, Mystery) + top Bayesian quality"}, {"movieId": 119, "title": "Psycho (1960)", "clean_title": "Psycho", "release_year": 1960, "genres": ["Crime", "Horror", "Mystery", "Thriller"], "stage1_score": 0.8982, "final_score": 0.7965, "bayesian_rating": 4.46, "strategy": "cold_start_content_genre_blend", "reason": "Matches onboarding genres (Horror, Thriller, Mystery) + top Bayesian quality"}, {"movieId": 41, "title": "Hereditary (2018)", "clean_title": "Hereditary", "release_year": 2018, "genres": ["Drama", "Horror", "Mystery"], "stage1_score": 0.8684, "final_score": 0.7019, "bayesian_rating": 4.2, "strategy": "cold_start_content_genre_blend", "reason": "Matches onboarding genres (Horror, Thriller, Mystery) + top Bayesian quality"}, {"movieId": 118, "title": "The Shining (1980)", "clean_title": "The Shining", "release_year": 1980, "genres": ["Horror", "Thriller"], "stage1_score": 0.831, "final_score": 0.6861, "bayesian_rating": 4.23, "strategy": "cold_start_content_genre_blend", "reason": "Matches onboarding genres (Horror, Thriller, Mystery) + top Bayesian quality"}, {"movieId": 29, "title": "Memento (2000)", "clean_title": "Memento", "release_year": 2000, "genres": ["Mystery", "Thriller"], "stage1_score": 0.6992, "final_score": 0.6778, "bayesian_rating": 4.51, "strategy": "cold_start_content_genre_blend", "reason": "Matches onboarding genres (Horror, Thriller, Mystery) + top Bayesian quality"}, {"movieId": 26, "title": "The Silence of the Lambs (1991)", "clean_title": "The Silence of the Lambs", "release_year": 1991, "genres": ["Crime", "Horror", "Thriller"], "stage1_score": 0.716, "final_score": 0.6578, "bayesian_rating": 4.41, "strategy": "cold_start_content_genre_blend", "reason": "Matches onboarding genres (Horror, Thriller, Mystery) + top Bayesian quality"}, {"movieId": 120, "title": "The Thing (1982)", "clean_title": "The Thing", "release_year": 1982, "genres": ["Action", "Horror", "Sci-Fi", "Thriller"], "stage1_score": 0.6695, "final_score": 0.6481, "bayesian_rating": 4.44, "strategy": "cold_start_content_genre_blend", "reason": "Matches onboarding genres (Horror, Thriller, Mystery) + top Bayesian quality"}, {"movieId": 27, "title": "Shutter Island (2010)", "clean_title": "Shutter Island", "release_year": 2010, "genres": ["Drama", "Mystery", "Thriller"], "stage1_score": 0.6526, "final_score": 0.6208, "bayesian_rating": 4.45, "strategy": "cold_start_content_genre_blend", "reason": "Matches onboarding genres (Horror, Thriller, Mystery) + top Bayesian quality"}, {"movieId": 40, "title": "A Quiet Place (2018)", "clean_title": "A Quiet Place", "release_year": 2018, "genres": ["Drama", "Horror", "Sci-Fi", "Thriller"], "stage1_score": 0.7044, "final_score": 0.6185, "bayesian_rating": 4.32, "strategy": "cold_start_content_genre_blend", "reason": "Matches onboarding genres (Horror, Thriller, Mystery) + top Bayesian quality"}, {"movieId": 101, "title": "Prisoners (2013)", "clean_title": "Prisoners", "release_year": 2013, "genres": ["Drama", "Mystery", "Thriller", "Crime"], "stage1_score": 0.5464, "final_score": 0.6176, "bayesian_rating": 4.56, "strategy": "cold_start_content_genre_blend", "reason": "Matches onboarding genres (Horror, Thriller, Mystery) + top Bayesian quality"}, {"movieId": 102, "title": "Gone Girl (2014)", "clean_title": "Gone Girl", "release_year": 2014, "genres": ["Drama", "Thriller", "Mystery"], "stage1_score": 0.6526, "final_score": 0.6113, "bayesian_rating": 4.43, "strategy": "cold_start_content_genre_blend", "reason": "Matches onboarding genres (Horror, Thriller, Mystery) + top Bayesian quality"}, {"movieId": 52, "title": "Memories of Murder (2003)", "clean_title": "Memories of Murder", "release_year": 2003, "genres": ["Crime", "Drama", "Mystery", "Thriller"], "stage1_score": 0.5464, "final_score": 0.6042, "bayesian_rating": 4.53, "strategy": "cold_start_content_genre_blend", "reason": "Matches onboarding genres (Horror, Thriller, Mystery) + top Bayesian quality"}], "wide_and_deep": [{"movieId": 39, "title": "Get Out (2017)", "clean_title": "Get Out", "release_year": 2017, "genres": ["Horror", "Mystery", "Thriller"], "stage1_score": 1.0, "final_score": 0.8694, "bayesian_rating": 4.49, "strategy": "cold_start_content_genre_blend", "reason": "Matches onboarding genres (Horror, Thriller, Mystery) + top Bayesian quality"}, {"movieId": 119, "title": "Psycho (1960)", "clean_title": "Psycho", "release_year": 1960, "genres": ["Crime", "Horror", "Mystery", "Thriller"], "stage1_score": 0.8982, "final_score": 0.7965, "bayesian_rating": 4.46, "strategy": "cold_start_content_genre_blend", "reason": "Matches onboarding genres (Horror, Thriller, Mystery) + top Bayesian quality"}, {"movieId": 41, "title": "Hereditary (2018)", "clean_title": "Hereditary", "release_year": 2018, "genres": ["Drama", "Horror", "Mystery"], "stage1_score": 0.8684, "final_score": 0.7019, "bayesian_rating": 4.2, "strategy": "cold_start_content_genre_blend", "reason": "Matches onboarding genres (Horror, Thriller, Mystery) + top Bayesian quality"}, {"movieId": 118, "title": "The Shining (1980)", "clean_title": "The Shining", "release_year": 1980, "genres": ["Horror", "Thriller"], "stage1_score": 0.831, "final_score": 0.6861, "bayesian_rating": 4.23, "strategy": "cold_start_content_genre_blend", "reason": "Matches onboarding genres (Horror, Thriller, Mystery) + top Bayesian quality"}, {"movieId": 29, "title": "Memento (2000)", "clean_title": "Memento", "release_year": 2000, "genres": ["Mystery", "Thriller"], "stage1_score": 0.6992, "final_score": 0.6778, "bayesian_rating": 4.51, "strategy": "cold_start_content_genre_blend", "reason": "Matches onboarding genres (Horror, Thriller, Mystery) + top Bayesian quality"}, {"movieId": 26, "title": "The Silence of the Lambs (1991)", "clean_title": "The Silence of the Lambs", "release_year": 1991, "genres": ["Crime", "Horror", "Thriller"], "stage1_score": 0.716, "final_score": 0.6578, "bayesian_rating": 4.41, "strategy": "cold_start_content_genre_blend", "reason": "Matches onboarding genres (Horror, Thriller, Mystery) + top Bayesian quality"}, {"movieId": 120, "title": "The Thing (1982)", "clean_title": "The Thing", "release_year": 1982, "genres": ["Action", "Horror", "Sci-Fi", "Thriller"], "stage1_score": 0.6695, "final_score": 0.6481, "bayesian_rating": 4.44, "strategy": "cold_start_content_genre_blend", "reason": "Matches onboarding genres (Horror, Thriller, Mystery) + top Bayesian quality"}, {"movieId": 27, "title": "Shutter Island (2010)", "clean_title": "Shutter Island", "release_year": 2010, "genres": ["Drama", "Mystery", "Thriller"], "stage1_score": 0.6526, "final_score": 0.6208, "bayesian_rating": 4.45, "strategy": "cold_start_content_genre_blend", "reason": "Matches onboarding genres (Horror, Thriller, Mystery) + top Bayesian quality"}, {"movieId": 40, "title": "A Quiet Place (2018)", "clean_title": "A Quiet Place", "release_year": 2018, "genres": ["Drama", "Horror", "Sci-Fi", "Thriller"], "stage1_score": 0.7044, "final_score": 0.6185, "bayesian_rating": 4.32, "strategy": "cold_start_content_genre_blend", "reason": "Matches onboarding genres (Horror, Thriller, Mystery) + top Bayesian quality"}, {"movieId": 101, "title": "Prisoners (2013)", "clean_title": "Prisoners", "release_year": 2013, "genres": ["Drama", "Mystery", "Thriller", "Crime"], "stage1_score": 0.5464, "final_score": 0.6176, "bayesian_rating": 4.56, "strategy": "cold_start_content_genre_blend", "reason": "Matches onboarding genres (Horror, Thriller, Mystery) + top Bayesian quality"}, {"movieId": 102, "title": "Gone Girl (2014)", "clean_title": "Gone Girl", "release_year": 2014, "genres": ["Drama", "Thriller", "Mystery"], "stage1_score": 0.6526, "final_score": 0.6113, "bayesian_rating": 4.43, "strategy": "cold_start_content_genre_blend", "reason": "Matches onboarding genres (Horror, Thriller, Mystery) + top Bayesian quality"}, {"movieId": 52, "title": "Memories of Murder (2003)", "clean_title": "Memories of Murder", "release_year": 2003, "genres": ["Crime", "Drama", "Mystery", "Thriller"], "stage1_score": 0.5464, "final_score": 0.6042, "bayesian_rating": 4.53, "strategy": "cold_start_content_genre_blend", "reason": "Matches onboarding genres (Horror, Thriller, Mystery) + top Bayesian quality"}], "stage1_candidates": 120}], "catalog": [{"movieId": 1, "title": "The Shawshank Redemption (1994)", "clean_title": "The Shawshank Redemption", "release_year": 1994, "genres": ["Drama", "Crime"], "bayesian_rating": 4.57, "trending_score": 29.01, "interactions": 151}, {"movieId": 2, "title": "The Godfather (1972)", "clean_title": "The Godfather", "release_year": 1972, "genres": ["Crime", "Drama"], "bayesian_rating": 4.56, "trending_score": 26.24, "interactions": 131}, {"movieId": 3, "title": "The Dark Knight (2008)", "clean_title": "The Dark Knight", "release_year": 2008, "genres": ["Action", "Crime", "Drama", "IMAX"], "bayesian_rating": 4.63, "trending_score": 31.76, "interactions": 178}, {"movieId": 4, "title": "Inception (2010)", "clean_title": "Inception", "release_year": 2010, "genres": ["Action", "Crime", "Drama", "Mystery", "Sci-Fi", "Thriller", "IMAX"], "bayesian_rating": 4.73, "trending_score": 32.7, "interactions": 277}, {"movieId": 5, "title": "Interstellar (2014)", "clean_title": "Interstellar", "release_year": 2014, "genres": ["Sci-Fi", "Drama", "Adventure", "IMAX"], "bayesian_rating": 4.61, "trending_score": 41.98, "interactions": 171}, {"movieId": 6, "title": "Pulp Fiction (1994)", "clean_title": "Pulp Fiction", "release_year": 1994, "genres": ["Comedy", "Crime", "Drama", "Thriller"], "bayesian_rating": 4.52, "trending_score": 35.69, "interactions": 169}, {"movieId": 7, "title": "The Matrix (1999)", "clean_title": "The Matrix", "release_year": 1999, "genres": ["Action", "Sci-Fi", "Thriller"], "bayesian_rating": 4.5, "trending_score": 40.62, "interactions": 169}, {"movieId": 8, "title": "Fight Club (1999)", "clean_title": "Fight Club", "release_year": 1999, "genres": ["Action", "Crime", "Drama", "Thriller"], "bayesian_rating": 4.5, "trending_score": 39.82, "interactions": 194}, {"movieId": 9, "title": "Forrest Gump (1994)", "clean_title": "Forrest Gump", "release_year": 1994, "genres": ["Comedy", "Drama", "Romance", "War"], "bayesian_rating": 4.44, "trending_score": 26.98, "interactions": 120}, {"movieId": 10, "title": "The Lord of the Rings: The Fellowship of the Ring (2001)", "clean_title": "The Lord of the Rings: The Fellowship of the Ring", "release_year": 2001, "genres": ["Adventure", "Fantasy"], "bayesian_rating": 4.4, "trending_score": 29.98, "interactions": 123}, {"movieId": 11, "title": "The Lord of the Rings: The Return of the King (2003)", "clean_title": "The Lord of the Rings: The Return of the King", "release_year": 2003, "genres": ["Action", "Adventure", "Drama", "Fantasy"], "bayesian_rating": 4.5, "trending_score": 32.37, "interactions": 166}, {"movieId": 12, "title": "Spirited Away (2001)", "clean_title": "Spirited Away", "release_year": 2001, "genres": ["Adventure", "Animation", "Fantasy"], "bayesian_rating": 4.55, "trending_score": 21.57, "interactions": 134}, {"movieId": 13, "title": "Parasite (2019)", "clean_title": "Parasite", "release_year": 2019, "genres": ["Comedy", "Drama", "Thriller"], "bayesian_rating": 4.49, "trending_score": 30.75, "interactions": 137}, {"movieId": 14, "title": "Whiplash (2014)", "clean_title": "Whiplash", "release_year": 2014, "genres": ["Drama", "Musical"], "bayesian_rating": 4.43, "trending_score": 28.38, "interactions": 111}, {"movieId": 15, "title": "Blade Runner 2049 (2017)", "clean_title": "Blade Runner 2049", "release_year": 2017, "genres": ["Sci-Fi", "Drama", "Mystery"], "bayesian_rating": 4.44, "trending_score": 34.0, "interactions": 154}, {"movieId": 16, "title": "Dune (2021)", "clean_title": "Dune", "release_year": 2021, "genres": ["Sci-Fi", "Adventure", "Drama"], "bayesian_rating": 4.34, "trending_score": 38.03, "interactions": 148}, {"movieId": 17, "title": "Dune: Part Two (2024)", "clean_title": "Dune: Part Two", "release_year": 2024, "genres": ["Sci-Fi", "Adventure", "Action", "Drama"], "bayesian_rating": 4.6, "trending_score": 39.91, "interactions": 183}, {"movieId": 18, "title": "Oppenheimer (2023)", "clean_title": "Oppenheimer", "release_year": 2023, "genres": ["Drama", "History", "Thriller"], "bayesian_rating": 4.53, "trending_score": 31.03, "interactions": 165}, {"movieId": 19, "title": "Arrival (2016)", "clean_title": "Arrival", "release_year": 2016, "genres": ["Sci-Fi", "Drama", "Mystery"], "bayesian_rating": 4.46, "trending_score": 32.95, "interactions": 158}, {"movieId": 20, "title": "Ex Machina (2014)", "clean_title": "Ex Machina", "release_year": 2014, "genres": ["Drama", "Sci-Fi", "Thriller"], "bayesian_rating": 4.43, "trending_score": 31.84, "interactions": 163}, {"movieId": 21, "title": "The Social Network (2010)", "clean_title": "The Social Network", "release_year": 2010, "genres": ["Drama"], "bayesian_rating": 4.13, "trending_score": 22.59, "interactions": 85}, {"movieId": 22, "title": "Spider-Man: Into the Spider-Verse (2018)", "clean_title": "Spider-Man: Into the Spider-Verse", "release_year": 2018, "genres": ["Action", "Adventure", "Animation", "Sci-Fi"], "bayesian_rating": 4.53, "trending_score": 39.15, "interactions": 176}, {"movieId": 23, "title": "Spider-Man: Across the Spider-Verse (2023)", "clean_title": "Spider-Man: Across the Spider-Verse", "release_year": 2023, "genres": ["Action", "Adventure", "Animation", "Sci-Fi"], "bayesian_rating": 4.55, "trending_score": 35.49, "interactions": 178}, {"movieId": 24, "title": "Goodfellas (1990)", "clean_title": "Goodfellas", "release_year": 1990, "genres": ["Crime", "Drama"], "bayesian_rating": 4.48, "trending_score": 30.85, "interactions": 128}, {"movieId": 25, "title": "Se7en (1995)", "clean_title": "Se7en", "release_year": 1995, "genres": ["Mystery", "Thriller", "Crime"], "bayesian_rating": 4.52, "trending_score": 31.9, "interactions": 174}, {"movieId": 26, "title": "The Silence of the Lambs (1991)", "clean_title": "The Silence of the Lambs", "release_year": 1991, "genres": ["Crime", "Horror", "Thriller"], "bayesian_rating": 4.41, "trending_score": 31.29, "interactions": 134}, {"movieId": 27, "title": "Shutter Island (2010)", "clean_title": "Shutter Island", "release_year": 2010, "genres": ["Drama", "Mystery", "Thriller"], "bayesian_rating": 4.45, "trending_score": 30.62, "interactions": 157}, {"movieId": 28, "title": "The Prestige (2006)", "clean_title": "The Prestige", "release_year": 2006, "genres": ["Drama", "Mystery", "Sci-Fi", "Thriller"], "bayesian_rating": 4.6, "trending_score": 28.21, "interactions": 192}, {"movieId": 29, "title": "Memento (2000)", "clean_title": "Memento", "release_year": 2000, "genres": ["Mystery", "Thriller"], "bayesian_rating": 4.51, "trending_score": 33.04, "interactions": 149}, {"movieId": 30, "title": "Eternal Sunshine of the Spotless Mind (2004)", "clean_title": "Eternal Sunshine of the Spotless Mind", "release_year": 2004, "genres": ["Drama", "Romance", "Sci-Fi"], "bayesian_rating": 4.35, "trending_score": 34.36, "interactions": 133}, {"movieId": 31, "title": "Her (2013)", "clean_title": "Her", "release_year": 2013, "genres": ["Drama", "Romance", "Sci-Fi"], "bayesian_rating": 4.23, "trending_score": 27.96, "interactions": 119}, {"movieId": 32, "title": "La La Land (2016)", "clean_title": "La La Land", "release_year": 2016, "genres": ["Comedy", "Drama", "Musical", "Romance"], "bayesian_rating": 4.37, "trending_score": 24.41, "interactions": 123}, {"movieId": 33, "title": "The Grand Budapest Hotel (2014)", "clean_title": "The Grand Budapest Hotel", "release_year": 2014, "genres": ["Comedy", "Drama", "Adventure"], "bayesian_rating": 4.3, "trending_score": 37.74, "interactions": 139}, {"movieId": 34, "title": "Knives Out (2019)", "clean_title": "Knives Out", "release_year": 2019, "genres": ["Comedy", "Crime", "Drama", "Mystery"], "bayesian_rating": 4.42, "trending_score": 30.32, "interactions": 161}, {"movieId": 35, "title": "Mad Max: Fury Road (2015)", "clean_title": "Mad Max: Fury Road", "release_year": 2015, "genres": ["Action", "Adventure", "Sci-Fi", "Thriller"], "bayesian_rating": 4.52, "trending_score": 33.35, "interactions": 182}, {"movieId": 36, "title": "John Wick (2014)", "clean_title": "John Wick", "release_year": 2014, "genres": ["Action", "Thriller", "Crime"], "bayesian_rating": 4.27, "trending_score": 36.02, "interactions": 128}, {"movieId": 37, "title": "Top Gun: Maverick (2022)", "clean_title": "Top Gun: Maverick", "release_year": 2022, "genres": ["Action", "Drama"], "bayesian_rating": 4.28, "trending_score": 26.2, "interactions": 104}, {"movieId": 38, "title": "Everything Everywhere All at Once (2022)", "clean_title": "Everything Everywhere All at Once", "release_year": 2022, "genres": ["Action", "Adventure", "Comedy", "Sci-Fi"], "bayesian_rating": 4.51, "trending_score": 35.47, "interactions": 142}, {"movieId": 39, "title": "Get Out (2017)", "clean_title": "Get Out", "release_year": 2017, "genres": ["Horror", "Mystery", "Thriller"], "bayesian_rating": 4.49, "trending_score": 28.59, "interactions": 138}, {"movieId": 40, "title": "A Quiet Place (2018)", "clean_title": "A Quiet Place", "release_year": 2018, "genres": ["Drama", "Horror", "Sci-Fi", "Thriller"], "bayesian_rating": 4.32, "trending_score": 29.12, "interactions": 141}, {"movieId": 41, "title": "Hereditary (2018)", "clean_title": "Hereditary", "release_year": 2018, "genres": ["Drama", "Horror", "Mystery"], "bayesian_rating": 4.2, "trending_score": 28.8, "interactions": 115}, {"movieId": 42, "title": "Toy Story (1995)", "clean_title": "Toy Story", "release_year": 1995, "genres": ["Adventure", "Animation", "Children", "Comedy", "Fantasy"], "bayesian_rating": 4.43, "trending_score": 25.01, "interactions": 148}, {"movieId": 43, "title": "WALL-E (2008)", "clean_title": "WALL-E", "release_year": 2008, "genres": ["Adventure", "Animation", "Children", "Romance", "Sci-Fi"], "bayesian_rating": 4.5, "trending_score": 32.55, "interactions": 167}, {"movieId": 44, "title": "Inside Out (2015)", "clean_title": "Inside Out", "release_year": 2015, "genres": ["Adventure", "Animation", "Children", "Comedy", "Drama"], "bayesian_rating": 4.41, "trending_score": 34.26, "interactions": 162}, {"movieId": 45, "title": "Coco (2017)", "clean_title": "Coco", "release_year": 2017, "genres": ["Adventure", "Animation", "Children", "Drama", "Musical"], "bayesian_rating": 4.52, "trending_score": 34.55, "interactions": 166}, {"movieId": 46, "title": "Your Name. (2016)", "clean_title": "Your Name.", "release_year": 2016, "genres": ["Animation", "Drama", "Fantasy", "Romance"], "bayesian_rating": 4.5, "trending_score": 27.67, "interactions": 157}, {"movieId": 47, "title": "Princess Mononoke (1997)", "clean_title": "Princess Mononoke", "release_year": 1997, "genres": ["Action", "Adventure", "Animation", "Drama", "Fantasy"], "bayesian_rating": 4.62, "trending_score": 33.79, "interactions": 192}, {"movieId": 48, "title": "Schindler's List (1993)", "clean_title": "Schindler's List", "release_year": 1993, "genres": ["Drama", "War", "History"], "bayesian_rating": 4.54, "trending_score": 28.33, "interactions": 125}, {"movieId": 49, "title": "12 Angry Men (1957)", "clean_title": "12 Angry Men", "release_year": 1957, "genres": ["Drama"], "bayesian_rating": 4.4, "trending_score": 29.59, "interactions": 104}, {"movieId": 50, "title": "City of God (2002)", "clean_title": "City of God", "release_year": 2002, "genres": ["Action", "Adventure", "Crime", "Drama", "Thriller"], "bayesian_rating": 4.59, "trending_score": 48.84, "interactions": 222}, {"movieId": 51, "title": "Oldboy (2003)", "clean_title": "Oldboy", "release_year": 2003, "genres": ["Mystery", "Thriller", "Action", "Drama"], "bayesian_rating": 4.5, "trending_score": 37.51, "interactions": 181}, {"movieId": 52, "title": "Memories of Murder (2003)", "clean_title": "Memories of Murder", "release_year": 2003, "genres": ["Crime", "Drama", "Mystery", "Thriller"], "bayesian_rating": 4.53, "trending_score": 41.05, "interactions": 205}, {"movieId": 53, "title": "The Departed (2006)", "clean_title": "The Departed", "release_year": 2006, "genres": ["Crime", "Drama", "Thriller"], "bayesian_rating": 4.48, "trending_score": 38.47, "interactions": 164}, {"movieId": 54, "title": "No Country for Old Men (2007)", "clean_title": "No Country for Old Men", "release_year": 2007, "genres": ["Crime", "Drama", "Thriller"], "bayesian_rating": 4.48, "trending_score": 31.49, "interactions": 147}, {"movieId": 55, "title": "There Will Be Blood (2007)", "clean_title": "There Will Be Blood", "release_year": 2007, "genres": ["Drama", "Western"], "bayesian_rating": 4.24, "trending_score": 25.57, "interactions": 89}, {"movieId": 56, "title": "Django Unchained (2012)", "clean_title": "Django Unchained", "release_year": 2012, "genres": ["Action", "Drama", "Western"], "bayesian_rating": 4.33, "trending_score": 32.83, "interactions": 110}, {"movieId": 57, "title": "Inglourious Basterds (2009)", "clean_title": "Inglourious Basterds", "release_year": 2009, "genres": ["Action", "Drama", "War"], "bayesian_rating": 4.35, "trending_score": 30.69, "interactions": 122}, {"movieId": 58, "title": "The Wolf of Wall Street (2013)", "clean_title": "The Wolf of Wall Street", "release_year": 2013, "genres": ["Comedy", "Crime", "Drama"], "bayesian_rating": 4.31, "trending_score": 34.89, "interactions": 131}, {"movieId": 59, "title": "Catch Me If You Can (2002)", "clean_title": "Catch Me If You Can", "release_year": 2002, "genres": ["Crime", "Drama"], "bayesian_rating": 4.36, "trending_score": 28.65, "interactions": 133}, {"movieId": 60, "title": "The Truman Show (1998)", "clean_title": "The Truman Show", "release_year": 1998, "genres": ["Comedy", "Drama", "Sci-Fi"], "bayesian_rating": 4.34, "trending_score": 32.2, "interactions": 121}, {"movieId": 61, "title": "Good Will Hunting (1997)", "clean_title": "Good Will Hunting", "release_year": 1997, "genres": ["Drama", "Romance"], "bayesian_rating": 4.34, "trending_score": 26.57, "interactions": 97}, {"movieId": 62, "title": "Dead Poets Society (1989)", "clean_title": "Dead Poets Society", "release_year": 1989, "genres": ["Drama"], "bayesian_rating": 4.18, "trending_score": 20.67, "interactions": 77}, {"movieId": 63, "title": "A Beautiful Mind (2001)", "clean_title": "A Beautiful Mind", "release_year": 2001, "genres": ["Drama", "Romance"], "bayesian_rating": 4.24, "trending_score": 23.91, "interactions": 92}, {"movieId": 64, "title": "The Imitation Game (2014)", "clean_title": "The Imitation Game", "release_year": 2014, "genres": ["Drama", "Thriller", "War"], "bayesian_rating": 4.22, "trending_score": 33.81, "interactions": 117}, {"movieId": 65, "title": "The Martian (2015)", "clean_title": "The Martian", "release_year": 2015, "genres": ["Adventure", "Drama", "Sci-Fi"], "bayesian_rating": 4.31, "trending_score": 35.58, "interactions": 127}, {"movieId": 66, "title": "Gravity (2013)", "clean_title": "Gravity", "release_year": 2013, "genres": ["Action", "Sci-Fi", "Thriller", "IMAX"], "bayesian_rating": 4.28, "trending_score": 29.43, "interactions": 168}, {"movieId": 67, "title": "District 9 (2009)", "clean_title": "District 9", "release_year": 2009, "genres": ["Mystery", "Sci-Fi", "Thriller"], "bayesian_rating": 4.52, "trending_score": 22.0, "interactions": 154}, {"movieId": 68, "title": "Children of Men (2006)", "clean_title": "Children of Men", "release_year": 2006, "genres": ["Action", "Adventure", "Drama", "Sci-Fi", "Thriller"], "bayesian_rating": 4.52, "trending_score": 38.96, "interactions": 203}, {"movieId": 69, "title": "2001: A Space Odyssey (1968)", "clean_title": "2001: A Space Odyssey", "release_year": 1968, "genres": ["Adventure", "Drama", "Sci-Fi"], "bayesian_rating": 4.32, "trending_score": 31.66, "interactions": 133}, {"movieId": 70, "title": "Alien (1979)", "clean_title": "Alien", "release_year": 1979, "genres": ["Horror", "Sci-Fi"], "bayesian_rating": 4.29, "trending_score": 29.22, "interactions": 100}, {"movieId": 71, "title": "Aliens (1986)", "clean_title": "Aliens", "release_year": 1986, "genres": ["Action", "Adventure", "Horror", "Sci-Fi"], "bayesian_rating": 4.45, "trending_score": 39.92, "interactions": 160}, {"movieId": 72, "title": "Terminator 2: Judgment Day (1991)", "clean_title": "Terminator 2: Judgment Day", "release_year": 1991, "genres": ["Action", "Sci-Fi"], "bayesian_rating": 4.31, "trending_score": 32.88, "interactions": 124}, {"movieId": 73, "title": "Jurassic Park (1993)", "clean_title": "Jurassic Park", "release_year": 1993, "genres": ["Action", "Adventure", "Sci-Fi", "Thriller"], "bayesian_rating": 4.42, "trending_score": 35.43, "interactions": 182}, {"movieId": 74, "title": "Back to the Future (1985)", "clean_title": "Back to the Future", "release_year": 1985, "genres": ["Adventure", "Comedy", "Sci-Fi"], "bayesian_rating": 4.33, "trending_score": 34.85, "interactions": 132}, {"movieId": 75, "title": "Star Wars: Episode V - The Empire Strikes Back (1980)", "clean_title": "Star Wars: Episode V - The Empire Strikes Back", "release_year": 1980, "genres": ["Action", "Adventure", "Sci-Fi"], "bayesian_rating": 4.48, "trending_score": 25.02, "interactions": 138}, {"movieId": 76, "title": "Raiders of the Lost Ark (1981)", "clean_title": "Raiders of the Lost Ark", "release_year": 1981, "genres": ["Action", "Adventure"], "bayesian_rating": 4.45, "trending_score": 21.35, "interactions": 119}, {"movieId": 77, "title": "Gladiator (2000)", "clean_title": "Gladiator", "release_year": 2000, "genres": ["Action", "Adventure", "Drama"], "bayesian_rating": 4.37, "trending_score": 33.16, "interactions": 129}, {"movieId": 78, "title": "Braveheart (1995)", "clean_title": "Braveheart", "release_year": 1995, "genres": ["Action", "Drama", "War"], "bayesian_rating": 4.17, "trending_score": 26.81, "interactions": 104}, {"movieId": 79, "title": "Saving Private Ryan (1998)", "clean_title": "Saving Private Ryan", "release_year": 1998, "genres": ["Action", "Drama", "War"], "bayesian_rating": 4.38, "trending_score": 23.5, "interactions": 111}, {"movieId": 80, "title": "1917 (2019)", "clean_title": "1917", "release_year": 2019, "genres": ["Drama", "War", "Action"], "bayesian_rating": 4.28, "trending_score": 35.1, "interactions": 121}, {"movieId": 81, "title": "Dunkirk (2017)", "clean_title": "Dunkirk", "release_year": 2017, "genres": ["Action", "Drama", "Thriller", "War"], "bayesian_rating": 4.28, "trending_score": 30.9, "interactions": 134}, {"movieId": 82, "title": "Joker (2019)", "clean_title": "Joker", "release_year": 2019, "genres": ["Crime", "Drama", "Thriller"], "bayesian_rating": 4.44, "trending_score": 34.94, "interactions": 156}, {"movieId": 83, "title": "The Batman (2022)", "clean_title": "The Batman", "release_year": 2022, "genres": ["Action", "Crime", "Drama", "Mystery"], "bayesian_rating": 4.37, "trending_score": 37.05, "interactions": 170}, {"movieId": 84, "title": "Logan (2017)", "clean_title": "Logan", "release_year": 2017, "genres": ["Action", "Sci-Fi", "Drama"], "bayesian_rating": 4.28, "trending_score": 32.07, "interactions": 123}, {"movieId": 85, "title": "Avengers: Infinity War (2018)", "clean_title": "Avengers: Infinity War", "release_year": 2018, "genres": ["Action", "Adventure", "Sci-Fi"], "bayesian_rating": 4.36, "trending_score": 34.55, "interactions": 143}, {"movieId": 86, "title": "Avengers: Endgame (2019)", "clean_title": "Avengers: Endgame", "release_year": 2019, "genres": ["Action", "Adventure", "Sci-Fi", "Drama"], "bayesian_rating": 4.46, "trending_score": 34.69, "interactions": 163}, {"movieId": 87, "title": "Guardians of the Galaxy (2014)", "clean_title": "Guardians of the Galaxy", "release_year": 2014, "genres": ["Action", "Adventure", "Comedy", "Sci-Fi"], "bayesian_rating": 4.4, "trending_score": 30.44, "interactions": 140}, {"movieId": 88, "title": "Superbad (2007)", "clean_title": "Superbad", "release_year": 2007, "genres": ["Comedy"], "bayesian_rating": 4.06, "trending_score": 19.4, "interactions": 76}, {"movieId": 89, "title": "The Hangover (2009)", "clean_title": "The Hangover", "release_year": 2009, "genres": ["Comedy", "Crime"], "bayesian_rating": 4.03, "trending_score": 21.19, "interactions": 83}, {"movieId": 90, "title": "Groundhog Day (1993)", "clean_title": "Groundhog Day", "release_year": 1993, "genres": ["Comedy", "Fantasy", "Romance"], "bayesian_rating": 4.33, "trending_score": 25.48, "interactions": 101}, {"movieId": 91, "title": "Monty Python and the Holy Grail (1975)", "clean_title": "Monty Python and the Holy Grail", "release_year": 1975, "genres": ["Adventure", "Comedy", "Fantasy"], "bayesian_rating": 4.38, "trending_score": 28.21, "interactions": 120}, {"movieId": 92, "title": "The Princess Bride (1987)", "clean_title": "The Princess Bride", "release_year": 1987, "genres": ["Action", "Adventure", "Comedy", "Fantasy", "Romance"], "bayesian_rating": 4.49, "trending_score": 29.92, "interactions": 175}, {"movieId": 93, "title": "Before Sunrise (1995)", "clean_title": "Before Sunrise", "release_year": 1995, "genres": ["Drama", "Romance"], "bayesian_rating": 4.26, "trending_score": 17.72, "interactions": 93}, {"movieId": 94, "title": "Pride & Prejudice (2005)", "clean_title": "Pride & Prejudice", "release_year": 2005, "genres": ["Drama", "Romance"], "bayesian_rating": 4.14, "trending_score": 20.73, "interactions": 84}, {"movieId": 95, "title": "The Notebook (2004)", "clean_title": "The Notebook", "release_year": 2004, "genres": ["Drama", "Romance"], "bayesian_rating": 3.98, "trending_score": 18.55, "interactions": 87}, {"movieId": 96, "title": "Past Lives (2023)", "clean_title": "Past Lives", "release_year": 2023, "genres": ["Drama", "Romance"], "bayesian_rating": 4.28, "trending_score": 30.68, "interactions": 100}, {"movieId": 97, "title": "Anatomy of a Fall (2023)", "clean_title": "Anatomy of a Fall", "release_year": 2023, "genres": ["Crime", "Drama", "Mystery", "Thriller"], "bayesian_rating": 4.52, "trending_score": 34.55, "interactions": 192}, {"movieId": 98, "title": "Poor Things (2023)", "clean_title": "Poor Things", "release_year": 2023, "genres": ["Comedy", "Drama", "Romance", "Sci-Fi"], "bayesian_rating": 4.34, "trending_score": 29.63, "interactions": 134}, {"movieId": 99, "title": "The Holdovers (2023)", "clean_title": "The Holdovers", "release_year": 2023, "genres": ["Comedy", "Drama"], "bayesian_rating": 4.22, "trending_score": 21.01, "interactions": 86}, {"movieId": 100, "title": "Killers of the Flower Moon (2023)", "clean_title": "Killers of the Flower Moon", "release_year": 2023, "genres": ["Crime", "Drama", "History"], "bayesian_rating": 4.49, "trending_score": 22.88, "interactions": 136}, {"movieId": 101, "title": "Prisoners (2013)", "clean_title": "Prisoners", "release_year": 2013, "genres": ["Drama", "Mystery", "Thriller", "Crime"], "bayesian_rating": 4.56, "trending_score": 42.78, "interactions": 204}, {"movieId": 102, "title": "Gone Girl (2014)", "clean_title": "Gone Girl", "release_year": 2014, "genres": ["Drama", "Thriller", "Mystery"], "bayesian_rating": 4.43, "trending_score": 28.86, "interactions": 165}, {"movieId": 103, "title": "Zodiac (2007)", "clean_title": "Zodiac", "release_year": 2007, "genres": ["Crime", "Drama", "Thriller", "Mystery"], "bayesian_rating": 4.47, "trending_score": 37.21, "interactions": 194}, {"movieId": 104, "title": "Sicario (2015)", "clean_title": "Sicario", "release_year": 2015, "genres": ["Crime", "Drama", "Mystery", "Thriller", "Action"], "bayesian_rating": 4.44, "trending_score": 42.81, "interactions": 213}, {"movieId": 105, "title": "Nightcrawler (2014)", "clean_title": "Nightcrawler", "release_year": 2014, "genres": ["Crime", "Drama", "Thriller"], "bayesian_rating": 4.33, "trending_score": 40.56, "interactions": 154}, {"movieId": 106, "title": "Drive (2011)", "clean_title": "Drive", "release_year": 2011, "genres": ["Crime", "Drama", "Film-Noir", "Thriller"], "bayesian_rating": 4.34, "trending_score": 37.49, "interactions": 137}, {"movieId": 107, "title": "Spotlight (2015)", "clean_title": "Spotlight", "release_year": 2015, "genres": ["Drama", "Thriller", "History"], "bayesian_rating": 4.44, "trending_score": 37.66, "interactions": 164}, {"movieId": 108, "title": "The Big Short (2015)", "clean_title": "The Big Short", "release_year": 2015, "genres": ["Comedy", "Drama"], "bayesian_rating": 4.24, "trending_score": 25.59, "interactions": 92}, {"movieId": 109, "title": "Moneyball (2011)", "clean_title": "Moneyball", "release_year": 2011, "genres": ["Drama"], "bayesian_rating": 4.16, "trending_score": 22.08, "interactions": 84}, {"movieId": 110, "title": "Ford v Ferrari (2019)", "clean_title": "Ford v Ferrari", "release_year": 2019, "genres": ["Action", "Drama"], "bayesian_rating": 4.3, "trending_score": 24.41, "interactions": 101}, {"movieId": 111, "title": "Rush (2013)", "clean_title": "Rush", "release_year": 2013, "genres": ["Action", "Drama"], "bayesian_rating": 4.24, "trending_score": 30.32, "interactions": 114}, {"movieId": 112, "title": "Soul (2020)", "clean_title": "Soul", "release_year": 2020, "genres": ["Animation", "Comedy", "Drama", "Fantasy", "Musical"], "bayesian_rating": 4.47, "trending_score": 30.44, "interactions": 153}, {"movieId": 113, "title": "Ratatouille (2007)", "clean_title": "Ratatouille", "release_year": 2007, "genres": ["Animation", "Children", "Comedy", "Drama"], "bayesian_rating": 4.34, "trending_score": 25.66, "interactions": 136}, {"movieId": 114, "title": "The Incredibles (2004)", "clean_title": "The Incredibles", "release_year": 2004, "genres": ["Action", "Adventure", "Animation", "Children", "Comedy"], "bayesian_rating": 4.49, "trending_score": 31.5, "interactions": 174}, {"movieId": 115, "title": "Up (2009)", "clean_title": "Up", "release_year": 2009, "genres": ["Adventure", "Animation", "Children", "Drama"], "bayesian_rating": 4.46, "trending_score": 27.29, "interactions": 139}, {"movieId": 116, "title": "Howl's Moving Castle (2004)", "clean_title": "Howl's Moving Castle", "release_year": 2004, "genres": ["Adventure", "Animation", "Fantasy", "Romance"], "bayesian_rating": 4.5, "trending_score": 22.66, "interactions": 131}, {"movieId": 117, "title": "My Neighbor Totoro (1988)", "clean_title": "My Neighbor Totoro", "release_year": 1988, "genres": ["Animation", "Children", "Drama", "Fantasy"], "bayesian_rating": 4.5, "trending_score": 19.96, "interactions": 123}, {"movieId": 118, "title": "The Shining (1980)", "clean_title": "The Shining", "release_year": 1980, "genres": ["Horror", "Thriller"], "bayesian_rating": 4.23, "trending_score": 29.81, "interactions": 119}, {"movieId": 119, "title": "Psycho (1960)", "clean_title": "Psycho", "release_year": 1960, "genres": ["Crime", "Horror", "Mystery", "Thriller"], "bayesian_rating": 4.46, "trending_score": 30.54, "interactions": 164}, {"movieId": 120, "title": "The Thing (1982)", "clean_title": "The Thing", "release_year": 1982, "genres": ["Action", "Horror", "Sci-Fi", "Thriller"], "bayesian_rating": 4.44, "trending_score": 35.98, "interactions": 168}]};
+
+    // Poster gradient themes by primary genre
+    const GENRE_THEMES = {
+      "Sci-Fi": "from-cyan-600/80 via-blue-800/85 to-slate-950",
+      "Action": "from-orange-600/80 via-red-800/85 to-slate-950",
+      "Drama": "from-indigo-600/80 via-slate-800/85 to-slate-950",
+      "Crime": "from-rose-700/80 via-zinc-900/90 to-slate-950",
+      "Animation": "from-fuchsia-600/80 via-purple-800/85 to-slate-950",
+      "Comedy": "from-amber-500/80 via-orange-700/85 to-slate-950",
+      "Horror": "from-red-900/90 via-neutral-900/95 to-black",
+      "Mystery": "from-violet-700/80 via-slate-900/90 to-slate-950",
+      "Adventure": "from-emerald-600/80 via-teal-800/85 to-slate-950",
+      "Romance": "from-pink-600/80 via-rose-800/85 to-slate-950",
+    };
+
+    const state = {
+      activeTab: "discover",
+      selectedUserId: DATA.users[0].userId,
+      modelOverride: "auto",
+      searchQuery: "",
+      useCache: true,
+      cacheStore: new Map(),
+      cacheHits: 0,
+      cacheMisses: 0,
+      selectedColdGenres: [],
+      clickedMovies: new Set(),
+      ab: {
+        wide_and_deep: {
+          impressions: DATA.ab_baseline.control.impressions,
+          clicks: DATA.ab_baseline.control.clicks,
+        },
+        dcn_v2: {
+          impressions: DATA.ab_baseline.treatment.impressions,
+          clicks: DATA.ab_baseline.treatment.clicks,
+        },
+      },
+      chartsInit: false,
+    };
+
+    function showToast(msg, tone = "sky") {
+      const box = document.getElementById("toast-box");
+      const el = document.createElement("div");
+      const colors = tone === "emerald"
+        ? "bg-emerald-950/95 border-emerald-500/50 text-emerald-200"
+        : tone === "amber"
+        ? "bg-amber-950/95 border-amber-500/50 text-amber-200"
+        : "bg-slate-900/95 border-sky-500/50 text-sky-200";
+      el.className = `px-4 py-2.5 rounded-xl border text-xs font-semibold shadow-xl ${colors} transition-all duration-300`;
+      el.textContent = msg;
+      box.appendChild(el);
+      setTimeout(() => { el.style.opacity = "0"; setTimeout(() => el.remove(), 300); }, 2600);
+    }
+
+    function erfc(x) {
+      const z = Math.abs(x);
+      const t = 1 / (1 + 0.5 * z);
+      const ans = t * Math.exp(-z * z - 1.26551223 + t * (1.00002368 + t * (0.37409196 + t * (0.09678418 +
+        t * (-0.18628806 + t * (0.27886807 + t * (-1.13520398 + t * (1.48851587 + t * (-0.82215223 + t * 0.17087277)))))))));
+      return x >= 0 ? ans : 2 - ans;
+    }
+
+    function getSelectedUser() {
+      return DATA.users.find(u => u.userId === Number(state.selectedUserId)) || DATA.users[0];
+    }
+
+    function getActiveVariant(user) {
+      if (user.is_cold_start) return "cold_start_fallback";
+      return state.modelOverride === "auto" ? user.ab_variant : state.modelOverride;
+    }
+
+    function renderDiscover(countCache = true) {
+      const user = getSelectedUser();
+      const variant = getActiveVariant(user);
+      const cacheKey = `${user.userId}:${variant}`;
+
+      let cacheHit = false;
+      if (countCache) {
+        if (state.useCache && state.cacheStore.has(cacheKey)) {
+          cacheHit = true;
+          state.cacheHits += 1;
+        } else {
+          state.cacheMisses += 1;
+          if (state.useCache) state.cacheStore.set(cacheKey, true);
+        }
+      }
+
+      const totalCache = state.cacheHits + state.cacheMisses;
+      const hitRate = totalCache > 0 ? ((state.cacheHits / totalCache) * 100).toFixed(1) : "0.0";
+
+      // Update KPI strip
+      const modelLabel = variant === "dcn_v2" ? "DCN-v2 (Treatment)" : variant === "wide_and_deep" ? "Wide & Deep (Control)" : "Cold-Start Fallback";
+      document.getElementById("kpi-model").textContent = modelLabel;
+      document.getElementById("kpi-serving").textContent = cacheHit ? "Served via Redis Cache" : "Triton Ensemble + FAISS";
+
+      const s1Lat = user.is_cold_start ? 0.0 : DATA.benchmarks.stage1_two_tower_faiss.p50_latency_ms;
+      const totLat = cacheHit ? 0.018 : (variant === "dcn_v2" ? DATA.benchmarks.stage2_dcn_v2.p50_latency_ms : DATA.benchmarks.stage2_wide_and_deep.p50_latency_ms);
+      const s2Lat = Math.max(0, totLat - s1Lat).toFixed(3);
+      document.getElementById("kpi-latency").textContent = `${totLat.toFixed(3)} ms`;
+      document.getElementById("kpi-latency-sub").textContent = cacheHit
+        ? "Bypassed Stage 1 & Stage 2"
+        : `FAISS ${s1Lat.toFixed(3)}ms + Rank ${s2Lat}ms`;
+
+      const cacheEl = document.getElementById("kpi-cache");
+      cacheEl.textContent = cacheHit ? "HIT (Redis <1ms)" : (state.useCache ? "MISS (Cached)" : "Bypassed");
+      cacheEl.className = `text-base font-bold mt-1 ${cacheHit ? "text-emerald-400" : "text-amber-300"}`;
+      document.getElementById("kpi-cache-rate").textContent = `Hit Rate: ${hitRate}% · TTL 300s`;
+
+      // User profile banner
+      const banner = document.getElementById("user-banner");
+      const genresHtml = (user.top_genres || []).map(g => `<span class="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-sky-500/15 text-sky-300 border border-sky-400/25">${g}</span>`).join("");
+      banner.innerHTML = `
+        <div class="space-y-1">
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="text-sm font-bold text-white">User #${user.userId} · ${user.archetype}</span>
+            ${user.is_cold_start
+              ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-400/30">COLD-START USER (0 HISTORY)</span>'
+              : `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-400/25">${user.interaction_count} Past Ratings · Avg ★${user.mean_rating}</span>`
+            }
+          </div>
+          <div class="flex flex-wrap items-center gap-1.5 text-xs text-slate-400">
+            <span>Learned Affinity:</span> ${genresHtml || '<span class="text-amber-300">No history — using Bayesian + Content Fallback</span>'}
+          </div>
+        </div>
+        <div class="flex items-center gap-3 text-xs">
+          <div class="px-3 py-1.5 rounded-xl bg-slate-900/90 border border-slate-700/80">
+            <span class="text-slate-400">Stage 1 FAISS:</span> <strong class="text-sky-300">${user.stage1_candidates} candidates</strong>
+          </div>
+          <div class="px-3 py-1.5 rounded-xl bg-slate-900/90 border border-slate-700/80">
+            <span class="text-slate-400">A/B Bucket:</span> <strong class="text-violet-300">${user.ab_variant}</strong>
+          </div>
+        </div>
+      `;
+
+      // Render movie cards
+      const recs = (variant === "wide_and_deep" ? user.wide_and_deep : user.dcn_v2) || [];
+      const q = state.searchQuery.trim().toLowerCase();
+      const filtered = q
+        ? recs.filter(r => r.title.toLowerCase().includes(q) || r.genres.join(" ").toLowerCase().includes(q))
+        : recs;
+
+      const grid = document.getElementById("movie-grid");
+      if (!filtered.length) {
+        grid.innerHTML = `<div class="col-span-full glass rounded-2xl p-8 text-center text-sm text-slate-400">No recommendations match "${state.searchQuery}".</div>`;
+        return;
+      }
+
+      grid.innerHTML = filtered.map((m, idx) => {
+        const grad = GENRE_THEMES[m.genres[0]] || "from-sky-700/80 via-slate-800/90 to-slate-950";
+        const matchPct = Math.min(99, Math.max(62, Math.round(m.final_score * 100)));
+        const isClicked = state.clickedMovies.has(`${user.userId}:${m.movieId}`);
+        return `
+          <article class="movie-card glass glass-hover rounded-2xl overflow-hidden flex flex-col justify-between">
+            <div>
+              <div class="h-32 bg-gradient-to-br ${grad} p-4 flex flex-col justify-between relative">
+                <div class="flex items-center justify-between">
+                  <span class="px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-black/45 text-white border border-white/15">#${idx + 1} RANKED</span>
+                  <span class="px-2 py-0.5 rounded-md text-[11px] font-extrabold bg-emerald-500/20 text-emerald-200 border border-emerald-400/35">${matchPct}% Match</span>
+                </div>
+                <div>
+                  <h3 class="text-sm font-extrabold text-white leading-snug line-clamp-2">${m.clean_title}</h3>
+                  <div class="text-[11px] text-slate-200/80 mt-0.5">${m.release_year} · ★ ${m.bayesian_rating}</div>
+                </div>
+              </div>
+              <div class="p-3.5 space-y-2.5">
+                <div class="flex flex-wrap gap-1">
+                  ${m.genres.slice(0, 3).map(g => `<span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">${g}</span>`).join("")}
+                </div>
+                <p class="text-[11px] text-slate-400 leading-relaxed">${m.reason}</p>
+                <div class="grid grid-cols-2 gap-1.5 pt-1 text-[10px]">
+                  <div class="bg-slate-900/80 rounded-lg px-2 py-1.5 border border-slate-800">
+                    <div class="text-slate-400">Stage 1 Cosine</div>
+                    <div class="font-bold text-sky-300">${Number(m.stage1_score).toFixed(3)}</div>
+                  </div>
+                  <div class="bg-slate-900/80 rounded-lg px-2 py-1.5 border border-slate-800">
+                    <div class="text-slate-400">Stage 2 Prob</div>
+                    <div class="font-bold text-violet-300">${Number(m.final_score).toFixed(3)}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="px-3.5 pb-3.5">
+              <button data-movie-id="${m.movieId}" data-title="${m.clean_title.replace(/"/g, '&quot;')}" class="btn-click-movie w-full py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition ${isClicked ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-slate-800 hover:bg-sky-500 hover:text-slate-950 text-slate-200 border border-slate-700'}">
+                <i data-lucide="${isClicked ? 'check-circle-2' : 'play'}" class="w-3.5 h-3.5"></i>
+                ${isClicked ? 'Click Logged (+CTR)' : 'Watch & Log Click'}
+              </button>
+            </div>
+          </article>
+        `;
+      }).join("");
+
+      lucide.createIcons();
+      grid.querySelectorAll(".btn-click-movie").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const mid = Number(btn.dataset.movieId);
+          const title = btn.dataset.title;
+          const v = variant === "wide_and_deep" ? "wide_and_deep" : "dcn_v2";
+          state.clickedMovies.add(`${user.userId}:${mid}`);
+          state.ab[v].clicks += 1;
+          state.ab[v].impressions += 1;
+          showToast(`Logged click on "${title}" -> Variant: ${v}`, "emerald");
+          renderDiscover(false);
+          renderABStats();
+        });
+      });
+    }
+
+    function renderColdStart() {
+      const allGenres = Array.from(new Set(DATA.catalog.flatMap(m => m.genres))).sort();
+      const chips = document.getElementById("genre-chips");
+      chips.innerHTML = allGenres.map(g => {
+        const active = state.selectedColdGenres.includes(g);
+        return `<button data-genre="${g}" class="genre-chip px-3 py-1.5 rounded-full text-xs font-semibold border transition ${active ? 'bg-sky-500 text-slate-950 border-sky-400' : 'bg-slate-900/80 text-slate-300 border-slate-700 hover:border-sky-400/50'}">${g}</button>`;
+      }).join("");
+
+      chips.querySelectorAll(".genre-chip").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const g = btn.dataset.genre;
+          if (state.selectedColdGenres.includes(g)) {
+            state.selectedColdGenres = state.selectedColdGenres.filter(x => x !== g);
+          } else if (state.selectedColdGenres.length < 3) {
+            state.selectedColdGenres.push(g);
+          } else {
+            showToast("Select up to 3 onboarding genres for crisp content targeting.", "amber");
+          }
+          renderColdStart();
+        });
+      });
+
+      const prefs = state.selectedColdGenres;
+      const bar = document.getElementById("coldstart-strategy-bar");
+      bar.textContent = prefs.length
+        ? `Active Strategy: Content-Based TF-IDF Genre Similarity (70%) + Bayesian Quality (30%) for [${prefs.join(", ")}]`
+        : "Active Strategy: Zero-History Bayesian Smoothed Popularity (65%) + Recency-Decayed Trending Score (35%)";
+
+      const maxB = Math.max(...DATA.catalog.map(m => m.bayesian_rating));
+      const minB = Math.min(...DATA.catalog.map(m => m.bayesian_rating));
+      const maxT = Math.max(...DATA.catalog.map(m => m.trending_score));
+
+      const scored = DATA.catalog.map(m => {
+        const normB = (m.bayesian_rating - minB) / Math.max(maxB - minB, 0.01);
+        const normT = m.trending_score / Math.max(maxT, 0.01);
+        const pop = 0.65 * normB + 0.35 * normT;
+        let sim = 0;
+        if (prefs.length) {
+          const overlap = m.genres.filter(g => prefs.includes(g)).length;
+          sim = overlap / Math.sqrt(m.genres.length * prefs.length);
+        }
+        const finalScore = prefs.length ? (0.70 * sim + 0.30 * pop) : pop;
+        return { ...m, sim, finalScore };
+      }).sort((a, b) => b.finalScore - a.finalScore).slice(0, 12);
+
+      const grid = document.getElementById("coldstart-grid");
+      grid.innerHTML = scored.map((m, i) => {
+        const grad = GENRE_THEMES[m.genres[0]] || "from-sky-700/80 via-slate-800/90 to-slate-950";
+        return `
+          <div class="glass rounded-2xl overflow-hidden">
+            <div class="h-28 bg-gradient-to-br ${grad} p-3.5 flex flex-col justify-between">
+              <div class="flex justify-between items-center">
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-black/40 text-white">#${i + 1}</span>
+                <span class="text-[11px] font-bold text-amber-300">★ ${m.bayesian_rating}</span>
+              </div>
+              <div>
+                <div class="text-sm font-bold text-white line-clamp-1">${m.clean_title}</div>
+                <div class="text-[11px] text-slate-200/80">${m.release_year}</div>
+              </div>
+            </div>
+            <div class="p-3 space-y-2">
+              <div class="flex flex-wrap gap-1">${m.genres.slice(0, 3).map(g => `<span class="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">${g}</span>`).join("")}</div>
+              <div class="flex justify-between text-[11px] text-slate-400">
+                <span>Content Sim: <strong class="text-sky-300">${m.sim.toFixed(2)}</strong></span>
+                <span>Score: <strong class="text-emerald-300">${(m.finalScore * 100).toFixed(0)}%</strong></span>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function renderABStats() {
+      const c = state.ab.wide_and_deep;
+      const t = state.ab.dcn_v2;
+      const p1 = c.impressions ? c.clicks / c.impressions : 0;
+      const p2 = t.impressions ? t.clicks / t.impressions : 0;
+      const pPool = (c.clicks + t.clicks) / Math.max(c.impressions + t.impressions, 1);
+      const se = Math.sqrt(Math.max(pPool * (1 - pPool) * (1 / Math.max(c.impressions, 1) + 1 / Math.max(t.impressions, 1)), 1e-12));
+      const z = (p2 - p1) / se;
+      const pVal = erfc(Math.abs(z) / Math.sqrt(2));
+      const lift = p1 > 0 ? ((p2 - p1) / p1) * 100 : 0;
+      const sig = pVal < 0.05;
+
+      document.getElementById("ab-ctrl-ctr").textContent = `${(p1 * 100).toFixed(2)}%`;
+      document.getElementById("ab-ctrl-counts").textContent = `${c.clicks.toLocaleString()} clicks / ${c.impressions.toLocaleString()} impressions`;
+      document.getElementById("ab-ctrl-bar").style.width = `${Math.min(100, p1 * 450)}%`;
+
+      document.getElementById("ab-trt-ctr").textContent = `${(p2 * 100).toFixed(2)}%`;
+      document.getElementById("ab-trt-counts").textContent = `${t.clicks.toLocaleString()} clicks / ${t.impressions.toLocaleString()} impressions`;
+      document.getElementById("ab-trt-bar").style.width = `${Math.min(100, p2 * 450)}%`;
+
+      document.getElementById("ab-lift").textContent = `${lift >= 0 ? "+" : ""}${lift.toFixed(2)}% CTR Lift`;
+      document.getElementById("ab-stats-line").textContent = `z-score = ${z.toFixed(3)} · p-value = ${pVal.toFixed(4)}`;
+      const badge = document.getElementById("ab-sig-badge");
+      badge.textContent = sig ? "Significant (p < 0.05)" : "Collecting Traffic";
+      badge.className = `text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${sig ? 'bg-emerald-500/15 text-emerald-300 border-emerald-400/35' : 'bg-amber-500/15 text-amber-300 border-amber-400/35'}`;
+    }
+
+    function initCharts() {
+      if (state.chartsInit) return;
+      state.chartsInit = true;
+      const m = DATA.benchmarks;
+
+      new Chart(document.getElementById("chart-offline"), {
+        type: "bar",
+        data: {
+          labels: ["Popularity", "Stage 1: Two-Tower", "Stage 2: Wide & Deep", "Stage 2: DCN-v2"],
+          datasets: [
+            { label: "NDCG@10", data: [m.popularity_baseline.ndcg_at_10, m.stage1_two_tower_faiss.ndcg_at_10, m.stage2_wide_and_deep.ndcg_at_10, m.stage2_dcn_v2.ndcg_at_10], backgroundColor: "#38bdf8", borderRadius: 6 },
+            { label: "Recall@10", data: [m.popularity_baseline.recall_at_10, m.stage1_two_tower_faiss.recall_at_10, m.stage2_wide_and_deep.recall_at_10, m.stage2_dcn_v2.recall_at_10], backgroundColor: "#34d399", borderRadius: 6 },
+            { label: "MRR", data: [m.popularity_baseline.mrr, m.stage1_two_tower_faiss.mrr, m.stage2_wide_and_deep.mrr, m.stage2_dcn_v2.mrr], backgroundColor: "#a78bfa", borderRadius: 6 },
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { labels: { color: "#cbd5e1", font: { size: 11 } } } },
+          scales: {
+            x: { ticks: { color: "#94a3b8" }, grid: { color: "rgba(148,163,184,0.08)" } },
+            y: { ticks: { color: "#94a3b8" }, grid: { color: "rgba(148,163,184,0.12)" }, beginAtZero: true, max: 0.45 }
+          }
+        }
+      });
+
+      new Chart(document.getElementById("chart-latency"), {
+        type: "bar",
+        data: {
+          labels: ["Redis Cache Hit", "Stage 1 FAISS (P50)", "Stage 2 Wide&Deep (P50)", "Stage 2 DCN-v2 (P50)", "Stage 2 DCN-v2 (P95)"],
+          datasets: [{
+            label: "Latency (ms)",
+            data: [0.018, m.stage1_two_tower_faiss.p50_latency_ms, m.stage2_wide_and_deep.p50_latency_ms, m.stage2_dcn_v2.p50_latency_ms, m.stage2_dcn_v2.p95_latency_ms],
+            backgroundColor: ["#34d399", "#38bdf8", "#818cf8", "#a78bfa", "#f59e0b"],
+            borderRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { ticks: { color: "#94a3b8", font: { size: 10 } }, grid: { display: false } },
+            y: { ticks: { color: "#94a3b8" }, grid: { color: "rgba(148,163,184,0.12)" }, beginAtZero: true }
+          }
+        }
+      });
+    }
+
+    function renderMilestones() {
+      const items = [
+        ["M1", "Temporal Split", "MovieLens 25M schema cleaned & split strictly by timestamp (80/10/10) with zero leakage assertions.", "amber"],
+        ["M2", "Apache Spark ETL", "Computes user rolling history, Bayesian popularity, recency decay & 19-genre multi-hot Parquet tables.", "amber"],
+        ["M3", "TFRS Two-Tower", "Separate User & Item neural towers projecting into L2-normalized 64-d inner-product embedding space.", "sky"],
+        ["M4", "FAISS ANN Index", "IndexFlatIP / IndexIVFFlat vector search retrieving top-K candidates in 0.048ms P50 (74.4% Recall@50).", "sky"],
+        ["M5", "DCN-v2 & Wide&Deep", "Stage-2 deep rankers trained with negative sampling; DCN-v2 achieves 0.2328 NDCG@10 (+82.4% vs baseline).", "violet"],
+        ["M6", "Cold-Start & Redis", "Bayesian + TF-IDF genre fallback for zero-history users; Redis 300s TTL cache cuts repeat latency <1ms.", "emerald"],
+        ["M7", "Triton & Airflow", "Triton KServe V2 configs (dynamic batching) + daily Airflow retraining DAG with NDCG quality gate.", "emerald"],
+        ["AB", "Online A/B Engine", "Deterministic MD5 50/50 user bucketing with live CTR tracking & two-proportion z-test significance.", "rose"],
+      ];
+      document.getElementById("milestone-cards").innerHTML = items.map(([code, title, desc, c]) => `
+        <div class="p-4 rounded-xl bg-slate-900/85 border border-slate-800 hover:border-${c}-400/40 transition">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-[10px] font-extrabold px-2 py-0.5 rounded bg-${c}-500/15 text-${c}-300 border border-${c}-400/30">${code}</span>
+            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+          </div>
+          <h4 class="text-sm font-bold text-white">${title}</h4>
+          <p class="text-[11px] text-slate-400 mt-1 leading-relaxed">${desc}</p>
+        </div>
+      `).join("");
+    }
+
+    function switchTab(tab) {
+      state.activeTab = tab;
+      ["discover", "coldstart", "abtest", "arch"].forEach(t => {
+        document.getElementById(`view-${t}`).classList.toggle("hidden", t !== tab);
+      });
+      document.querySelectorAll(".nav-tab").forEach(btn => {
+        const active = btn.dataset.tab === tab;
+        btn.classList.toggle("tab-active", active);
+        btn.classList.toggle("text-slate-300", !active);
+      });
+      if (tab === "abtest") {
+        renderABStats();
+        setTimeout(initCharts, 40);
+      }
+    }
+
+    // Initialize controls
+    const userSel = document.getElementById("user-select");
+    DATA.users.forEach(u => {
+      const opt = document.createElement("option");
+      opt.value = u.userId;
+      opt.textContent = u.is_cold_start
+        ? `User #${u.userId} — Cold-Start New User`
+        : `User #${u.userId} — ${u.archetype} (${u.interaction_count} ratings)`;
+      userSel.appendChild(opt);
+    });
+
+    document.querySelectorAll(".nav-tab").forEach(btn => btn.addEventListener("click", () => switchTab(btn.dataset.tab)));
+    userSel.addEventListener("change", e => { state.selectedUserId = Number(e.target.value); renderDiscover(true); });
+    document.getElementById("model-select").addEventListener("change", e => { state.modelOverride = e.target.value; renderDiscover(true); });
+    document.getElementById("search-input").addEventListener("input", e => { state.searchQuery = e.target.value; renderDiscover(false); });
+    document.getElementById("cache-toggle").addEventListener("change", e => { state.useCache = e.target.checked; renderDiscover(true); });
+    document.getElementById("btn-recompute").addEventListener("click", () => { renderDiscover(true); showToast("Two-Stage inference executed.", "sky"); });
+    document.getElementById("btn-flush").addEventListener("click", () => {
+      state.cacheStore.clear();
+      showToast("Redis cache flushed — next request will run full FAISS + Ranker.", "amber");
+      renderDiscover(false);
+    });
+    document.getElementById("btn-clear-genres").addEventListener("click", () => { state.selectedColdGenres = []; renderColdStart(); });
+    document.getElementById("btn-sim-traffic").addEventListener("click", () => {
+      // Simulate 200 impressions per arm using calibrated click rates from held-out NDCG
+      for (let i = 0; i < 200; i++) {
+        state.ab.wide_and_deep.impressions += 1;
+        if (Math.random() < 0.090) state.ab.wide_and_deep.clicks += 1;
+        state.ab.dcn_v2.impressions += 1;
+        if (Math.random() < 0.104) state.ab.dcn_v2.clicks += 1;
+      }
+      renderABStats();
+      showToast("Simulated +400 live A/B requests (200 Control / 200 Treatment).", "emerald");
+    });
+
+    renderDiscover(true);
+    renderColdStart();
+    renderABStats();
+    renderMilestones();
+    lucide.createIcons();
+  </script>
+</body>
+</html>

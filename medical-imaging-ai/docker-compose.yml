@@ -1,0 +1,63 @@
+services:
+  orthanc:
+    image: jodogne/orthanc-plugins:latest
+    container_name: aiml02-orthanc
+    ports:
+      - "8042:8042"
+      - "4242:4242"
+    volumes:
+      - ./docker/orthanc.json:/etc/orthanc/orthanc.json:ro
+      - orthanc_data:/var/lib/orthanc/db
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+    container_name: aiml02-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - ORTHANC_URL=http://orthanc:8042
+      - ORTHANC_USER=orthanc
+      - ORTHANC_PASS=orthanc
+      - DB_PATH=/app/data/audit_log.db
+      - CLASSIFIER_WEIGHTS=/app/models/classifier_densenet121.pth
+    volumes:
+      - backend_data:/app/data
+      - ./models:/app/models:ro
+    depends_on:
+      - orthanc
+    restart: unless-stopped
+
+  poller:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+    container_name: aiml02-orthanc-poller
+    command: ["python", "-m", "backend.orthanc_poller"]
+    environment:
+      - ORTHANC_URL=http://orthanc:8042
+      - ORTHANC_USER=orthanc
+      - ORTHANC_PASS=orthanc
+      - BACKEND_URL=http://backend:8000
+      - POLL_INTERVAL_SEC=5
+    depends_on:
+      - orthanc
+      - backend
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.frontend
+    container_name: aiml02-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  orthanc_data:
+  backend_data:

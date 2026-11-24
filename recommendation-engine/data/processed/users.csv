@@ -1,0 +1,401 @@
+userId,archetype,preferred_genres,is_cold_start
+1,Animation & Fantasy,Animation|Fantasy|Children,False
+2,Prestige Drama & Crime,Drama|Crime|History,False
+3,Comedy & Romance,Comedy|Romance|Musical,False
+4,Animation & Fantasy,Animation|Fantasy|Children,False
+5,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+6,Horror & Suspense,Horror|Thriller|Mystery,False
+7,Animation & Fantasy,Animation|Fantasy|Children,False
+8,Animation & Fantasy,Animation|Fantasy|Children,False
+9,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+10,Prestige Drama & Crime,Drama|Crime|History,False
+11,Prestige Drama & Crime,Drama|Crime|History,False
+12,Comedy & Romance,Comedy|Romance|Musical,False
+13,Action & Blockbuster,Action|Adventure|IMAX,False
+14,Comedy & Romance,Comedy|Romance|Musical,False
+15,Prestige Drama & Crime,Drama|Crime|History,False
+16,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+17,Action & Blockbuster,Action|Adventure|IMAX,False
+18,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+19,Comedy & Romance,Comedy|Romance|Musical,False
+20,Action & Blockbuster,Action|Adventure|IMAX,False
+21,Animation & Fantasy,Animation|Fantasy|Children,False
+22,Prestige Drama & Crime,Drama|Crime|History,False
+23,Horror & Suspense,Horror|Thriller|Mystery,False
+24,Comedy & Romance,Comedy|Romance|Musical,False
+25,Animation & Fantasy,Animation|Fantasy|Children,False
+26,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+27,Prestige Drama & Crime,Drama|Crime|History,False
+28,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+29,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+30,Animation & Fantasy,Animation|Fantasy|Children,False
+31,Animation & Fantasy,Animation|Fantasy|Children,False
+32,Horror & Suspense,Horror|Thriller|Mystery,False
+33,Prestige Drama & Crime,Drama|Crime|History,False
+34,Prestige Drama & Crime,Drama|Crime|History,False
+35,Prestige Drama & Crime,Drama|Crime|History,False
+36,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+37,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+38,Prestige Drama & Crime,Drama|Crime|History,False
+39,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+40,Action & Blockbuster,Action|Adventure|IMAX,False
+41,Prestige Drama & Crime,Drama|Crime|History,False
+42,Comedy & Romance,Comedy|Romance|Musical,False
+43,Animation & Fantasy,Animation|Fantasy|Children,False
+44,Prestige Drama & Crime,Drama|Crime|History,False
+45,Comedy & Romance,Comedy|Romance|Musical,False
+46,Animation & Fantasy,Animation|Fantasy|Children,False
+47,Prestige Drama & Crime,Drama|Crime|History,False
+48,Prestige Drama & Crime,Drama|Crime|History,False
+49,Animation & Fantasy,Animation|Fantasy|Children,False
+50,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+51,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+52,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+53,Animation & Fantasy,Animation|Fantasy|Children,False
+54,Action & Blockbuster,Action|Adventure|IMAX,False
+55,Animation & Fantasy,Animation|Fantasy|Children,False
+56,Animation & Fantasy,Animation|Fantasy|Children,False
+57,Prestige Drama & Crime,Drama|Crime|History,False
+58,Action & Blockbuster,Action|Adventure|IMAX,False
+59,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+60,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+61,Action & Blockbuster,Action|Adventure|IMAX,False
+62,Prestige Drama & Crime,Drama|Crime|History,False
+63,Action & Blockbuster,Action|Adventure|IMAX,False
+64,Animation & Fantasy,Animation|Fantasy|Children,False
+65,Action & Blockbuster,Action|Adventure|IMAX,False
+66,Action & Blockbuster,Action|Adventure|IMAX,False
+67,Action & Blockbuster,Action|Adventure|IMAX,False
+68,Prestige Drama & Crime,Drama|Crime|History,False
+69,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+70,Prestige Drama & Crime,Drama|Crime|History,False
+71,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+72,Prestige Drama & Crime,Drama|Crime|History,False
+73,Comedy & Romance,Comedy|Romance|Musical,False
+74,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+75,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+76,Prestige Drama & Crime,Drama|Crime|History,False
+77,Prestige Drama & Crime,Drama|Crime|History,False
+78,Action & Blockbuster,Action|Adventure|IMAX,False
+79,Action & Blockbuster,Action|Adventure|IMAX,False
+80,Animation & Fantasy,Animation|Fantasy|Children,False
+81,Action & Blockbuster,Action|Adventure|IMAX,False
+82,Prestige Drama & Crime,Drama|Crime|History,False
+83,Animation & Fantasy,Animation|Fantasy|Children,False
+84,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+85,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+86,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+87,Animation & Fantasy,Animation|Fantasy|Children,False
+88,Prestige Drama & Crime,Drama|Crime|History,False
+89,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+90,Action & Blockbuster,Action|Adventure|IMAX,False
+91,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+92,Animation & Fantasy,Animation|Fantasy|Children,False
+93,Prestige Drama & Crime,Drama|Crime|History,False
+94,Prestige Drama & Crime,Drama|Crime|History,False
+95,Prestige Drama & Crime,Drama|Crime|History,False
+96,Action & Blockbuster,Action|Adventure|IMAX,False
+97,Prestige Drama & Crime,Drama|Crime|History,False
+98,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+99,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+100,Horror & Suspense,Horror|Thriller|Mystery,False
+101,Comedy & Romance,Comedy|Romance|Musical,False
+102,Animation & Fantasy,Animation|Fantasy|Children,False
+103,Prestige Drama & Crime,Drama|Crime|History,False
+104,Horror & Suspense,Horror|Thriller|Mystery,False
+105,Animation & Fantasy,Animation|Fantasy|Children,False
+106,Animation & Fantasy,Animation|Fantasy|Children,False
+107,Prestige Drama & Crime,Drama|Crime|History,False
+108,Prestige Drama & Crime,Drama|Crime|History,False
+109,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+110,Comedy & Romance,Comedy|Romance|Musical,False
+111,Prestige Drama & Crime,Drama|Crime|History,False
+112,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+113,Prestige Drama & Crime,Drama|Crime|History,False
+114,Action & Blockbuster,Action|Adventure|IMAX,False
+115,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+116,Comedy & Romance,Comedy|Romance|Musical,False
+117,Animation & Fantasy,Animation|Fantasy|Children,False
+118,Animation & Fantasy,Animation|Fantasy|Children,False
+119,Prestige Drama & Crime,Drama|Crime|History,False
+120,Action & Blockbuster,Action|Adventure|IMAX,False
+121,Action & Blockbuster,Action|Adventure|IMAX,False
+122,Action & Blockbuster,Action|Adventure|IMAX,False
+123,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+124,Prestige Drama & Crime,Drama|Crime|History,False
+125,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+126,Action & Blockbuster,Action|Adventure|IMAX,False
+127,Prestige Drama & Crime,Drama|Crime|History,False
+128,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+129,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+130,Action & Blockbuster,Action|Adventure|IMAX,False
+131,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+132,Comedy & Romance,Comedy|Romance|Musical,False
+133,Action & Blockbuster,Action|Adventure|IMAX,False
+134,Prestige Drama & Crime,Drama|Crime|History,False
+135,Action & Blockbuster,Action|Adventure|IMAX,False
+136,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+137,Horror & Suspense,Horror|Thriller|Mystery,False
+138,Action & Blockbuster,Action|Adventure|IMAX,False
+139,Animation & Fantasy,Animation|Fantasy|Children,False
+140,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+141,Action & Blockbuster,Action|Adventure|IMAX,False
+142,Action & Blockbuster,Action|Adventure|IMAX,False
+143,Horror & Suspense,Horror|Thriller|Mystery,False
+144,Action & Blockbuster,Action|Adventure|IMAX,False
+145,Prestige Drama & Crime,Drama|Crime|History,False
+146,Prestige Drama & Crime,Drama|Crime|History,False
+147,Prestige Drama & Crime,Drama|Crime|History,False
+148,Action & Blockbuster,Action|Adventure|IMAX,False
+149,Prestige Drama & Crime,Drama|Crime|History,False
+150,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+151,Comedy & Romance,Comedy|Romance|Musical,False
+152,Comedy & Romance,Comedy|Romance|Musical,False
+153,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+154,Action & Blockbuster,Action|Adventure|IMAX,False
+155,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+156,Action & Blockbuster,Action|Adventure|IMAX,False
+157,Prestige Drama & Crime,Drama|Crime|History,False
+158,Action & Blockbuster,Action|Adventure|IMAX,False
+159,Animation & Fantasy,Animation|Fantasy|Children,False
+160,Animation & Fantasy,Animation|Fantasy|Children,False
+161,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+162,Comedy & Romance,Comedy|Romance|Musical,False
+163,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+164,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+165,Action & Blockbuster,Action|Adventure|IMAX,False
+166,Prestige Drama & Crime,Drama|Crime|History,False
+167,Comedy & Romance,Comedy|Romance|Musical,False
+168,Animation & Fantasy,Animation|Fantasy|Children,False
+169,Prestige Drama & Crime,Drama|Crime|History,False
+170,Horror & Suspense,Horror|Thriller|Mystery,False
+171,Prestige Drama & Crime,Drama|Crime|History,False
+172,Action & Blockbuster,Action|Adventure|IMAX,False
+173,Prestige Drama & Crime,Drama|Crime|History,False
+174,Horror & Suspense,Horror|Thriller|Mystery,False
+175,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+176,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+177,Prestige Drama & Crime,Drama|Crime|History,False
+178,Horror & Suspense,Horror|Thriller|Mystery,False
+179,Comedy & Romance,Comedy|Romance|Musical,False
+180,Animation & Fantasy,Animation|Fantasy|Children,False
+181,Comedy & Romance,Comedy|Romance|Musical,False
+182,Comedy & Romance,Comedy|Romance|Musical,False
+183,Action & Blockbuster,Action|Adventure|IMAX,False
+184,Prestige Drama & Crime,Drama|Crime|History,False
+185,Animation & Fantasy,Animation|Fantasy|Children,False
+186,Action & Blockbuster,Action|Adventure|IMAX,False
+187,Prestige Drama & Crime,Drama|Crime|History,False
+188,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+189,Animation & Fantasy,Animation|Fantasy|Children,False
+190,Prestige Drama & Crime,Drama|Crime|History,False
+191,Horror & Suspense,Horror|Thriller|Mystery,False
+192,Prestige Drama & Crime,Drama|Crime|History,False
+193,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+194,Comedy & Romance,Comedy|Romance|Musical,False
+195,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+196,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+197,Action & Blockbuster,Action|Adventure|IMAX,False
+198,Comedy & Romance,Comedy|Romance|Musical,False
+199,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+200,Prestige Drama & Crime,Drama|Crime|History,False
+201,Animation & Fantasy,Animation|Fantasy|Children,False
+202,Horror & Suspense,Horror|Thriller|Mystery,False
+203,Action & Blockbuster,Action|Adventure|IMAX,False
+204,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+205,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+206,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+207,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+208,Action & Blockbuster,Action|Adventure|IMAX,False
+209,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+210,Action & Blockbuster,Action|Adventure|IMAX,False
+211,Animation & Fantasy,Animation|Fantasy|Children,False
+212,Action & Blockbuster,Action|Adventure|IMAX,False
+213,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+214,Animation & Fantasy,Animation|Fantasy|Children,False
+215,Animation & Fantasy,Animation|Fantasy|Children,False
+216,Animation & Fantasy,Animation|Fantasy|Children,False
+217,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+218,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+219,Comedy & Romance,Comedy|Romance|Musical,False
+220,Prestige Drama & Crime,Drama|Crime|History,False
+221,Prestige Drama & Crime,Drama|Crime|History,False
+222,Action & Blockbuster,Action|Adventure|IMAX,False
+223,Action & Blockbuster,Action|Adventure|IMAX,False
+224,Horror & Suspense,Horror|Thriller|Mystery,False
+225,Prestige Drama & Crime,Drama|Crime|History,False
+226,Comedy & Romance,Comedy|Romance|Musical,False
+227,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+228,Action & Blockbuster,Action|Adventure|IMAX,False
+229,Action & Blockbuster,Action|Adventure|IMAX,False
+230,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+231,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+232,Prestige Drama & Crime,Drama|Crime|History,False
+233,Horror & Suspense,Horror|Thriller|Mystery,False
+234,Action & Blockbuster,Action|Adventure|IMAX,False
+235,Horror & Suspense,Horror|Thriller|Mystery,False
+236,Animation & Fantasy,Animation|Fantasy|Children,False
+237,Prestige Drama & Crime,Drama|Crime|History,False
+238,Animation & Fantasy,Animation|Fantasy|Children,False
+239,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+240,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+241,Comedy & Romance,Comedy|Romance|Musical,False
+242,Animation & Fantasy,Animation|Fantasy|Children,False
+243,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+244,Action & Blockbuster,Action|Adventure|IMAX,False
+245,Action & Blockbuster,Action|Adventure|IMAX,False
+246,Comedy & Romance,Comedy|Romance|Musical,False
+247,Action & Blockbuster,Action|Adventure|IMAX,False
+248,Prestige Drama & Crime,Drama|Crime|History,False
+249,Prestige Drama & Crime,Drama|Crime|History,False
+250,Prestige Drama & Crime,Drama|Crime|History,False
+251,Action & Blockbuster,Action|Adventure|IMAX,False
+252,Comedy & Romance,Comedy|Romance|Musical,False
+253,Prestige Drama & Crime,Drama|Crime|History,False
+254,Prestige Drama & Crime,Drama|Crime|History,False
+255,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+256,Animation & Fantasy,Animation|Fantasy|Children,False
+257,Animation & Fantasy,Animation|Fantasy|Children,False
+258,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+259,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+260,Action & Blockbuster,Action|Adventure|IMAX,False
+261,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+262,Comedy & Romance,Comedy|Romance|Musical,False
+263,Prestige Drama & Crime,Drama|Crime|History,False
+264,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+265,Comedy & Romance,Comedy|Romance|Musical,False
+266,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+267,Prestige Drama & Crime,Drama|Crime|History,False
+268,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+269,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+270,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+271,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+272,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+273,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+274,Action & Blockbuster,Action|Adventure|IMAX,False
+275,Animation & Fantasy,Animation|Fantasy|Children,False
+276,Prestige Drama & Crime,Drama|Crime|History,False
+277,Prestige Drama & Crime,Drama|Crime|History,False
+278,Action & Blockbuster,Action|Adventure|IMAX,False
+279,Comedy & Romance,Comedy|Romance|Musical,False
+280,Comedy & Romance,Comedy|Romance|Musical,False
+281,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+282,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+283,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+284,Prestige Drama & Crime,Drama|Crime|History,False
+285,Action & Blockbuster,Action|Adventure|IMAX,False
+286,Prestige Drama & Crime,Drama|Crime|History,False
+287,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+288,Prestige Drama & Crime,Drama|Crime|History,False
+289,Action & Blockbuster,Action|Adventure|IMAX,False
+290,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+291,Comedy & Romance,Comedy|Romance|Musical,False
+292,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+293,Comedy & Romance,Comedy|Romance|Musical,False
+294,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+295,Comedy & Romance,Comedy|Romance|Musical,False
+296,Comedy & Romance,Comedy|Romance|Musical,False
+297,Horror & Suspense,Horror|Thriller|Mystery,False
+298,Animation & Fantasy,Animation|Fantasy|Children,False
+299,Animation & Fantasy,Animation|Fantasy|Children,False
+300,Action & Blockbuster,Action|Adventure|IMAX,False
+301,Animation & Fantasy,Animation|Fantasy|Children,False
+302,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+303,Action & Blockbuster,Action|Adventure|IMAX,False
+304,Action & Blockbuster,Action|Adventure|IMAX,False
+305,Comedy & Romance,Comedy|Romance|Musical,False
+306,Prestige Drama & Crime,Drama|Crime|History,False
+307,Prestige Drama & Crime,Drama|Crime|History,False
+308,Action & Blockbuster,Action|Adventure|IMAX,False
+309,Prestige Drama & Crime,Drama|Crime|History,False
+310,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+311,Prestige Drama & Crime,Drama|Crime|History,False
+312,Prestige Drama & Crime,Drama|Crime|History,False
+313,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+314,Prestige Drama & Crime,Drama|Crime|History,False
+315,Prestige Drama & Crime,Drama|Crime|History,False
+316,Prestige Drama & Crime,Drama|Crime|History,False
+317,Prestige Drama & Crime,Drama|Crime|History,False
+318,Animation & Fantasy,Animation|Fantasy|Children,False
+319,Prestige Drama & Crime,Drama|Crime|History,False
+320,Horror & Suspense,Horror|Thriller|Mystery,False
+321,Comedy & Romance,Comedy|Romance|Musical,False
+322,Action & Blockbuster,Action|Adventure|IMAX,False
+323,Prestige Drama & Crime,Drama|Crime|History,False
+324,Action & Blockbuster,Action|Adventure|IMAX,False
+325,Comedy & Romance,Comedy|Romance|Musical,False
+326,Action & Blockbuster,Action|Adventure|IMAX,False
+327,Animation & Fantasy,Animation|Fantasy|Children,False
+328,Action & Blockbuster,Action|Adventure|IMAX,False
+329,Action & Blockbuster,Action|Adventure|IMAX,False
+330,Prestige Drama & Crime,Drama|Crime|History,False
+331,Animation & Fantasy,Animation|Fantasy|Children,False
+332,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+333,Animation & Fantasy,Animation|Fantasy|Children,False
+334,Comedy & Romance,Comedy|Romance|Musical,False
+335,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+336,Action & Blockbuster,Action|Adventure|IMAX,False
+337,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+338,Animation & Fantasy,Animation|Fantasy|Children,False
+339,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+340,Horror & Suspense,Horror|Thriller|Mystery,False
+341,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+342,Horror & Suspense,Horror|Thriller|Mystery,False
+343,Animation & Fantasy,Animation|Fantasy|Children,False
+344,Action & Blockbuster,Action|Adventure|IMAX,False
+345,Animation & Fantasy,Animation|Fantasy|Children,False
+346,Animation & Fantasy,Animation|Fantasy|Children,False
+347,Horror & Suspense,Horror|Thriller|Mystery,False
+348,Prestige Drama & Crime,Drama|Crime|History,False
+349,Action & Blockbuster,Action|Adventure|IMAX,False
+350,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+351,Action & Blockbuster,Action|Adventure|IMAX,False
+352,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+353,Action & Blockbuster,Action|Adventure|IMAX,False
+354,Action & Blockbuster,Action|Adventure|IMAX,False
+355,Prestige Drama & Crime,Drama|Crime|History,False
+356,Action & Blockbuster,Action|Adventure|IMAX,False
+357,Animation & Fantasy,Animation|Fantasy|Children,False
+358,Animation & Fantasy,Animation|Fantasy|Children,False
+359,Action & Blockbuster,Action|Adventure|IMAX,False
+360,Action & Blockbuster,Action|Adventure|IMAX,False
+361,Horror & Suspense,Horror|Thriller|Mystery,False
+362,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+363,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+364,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+365,Action & Blockbuster,Action|Adventure|IMAX,False
+366,Prestige Drama & Crime,Drama|Crime|History,False
+367,Animation & Fantasy,Animation|Fantasy|Children,False
+368,Action & Blockbuster,Action|Adventure|IMAX,False
+369,Prestige Drama & Crime,Drama|Crime|History,False
+370,Comedy & Romance,Comedy|Romance|Musical,False
+371,Animation & Fantasy,Animation|Fantasy|Children,False
+372,Prestige Drama & Crime,Drama|Crime|History,False
+373,Prestige Drama & Crime,Drama|Crime|History,False
+374,Prestige Drama & Crime,Drama|Crime|History,False
+375,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+376,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,False
+377,Horror & Suspense,Horror|Thriller|Mystery,False
+378,Prestige Drama & Crime,Drama|Crime|History,False
+379,Prestige Drama & Crime,Drama|Crime|History,False
+380,Animation & Fantasy,Animation|Fantasy|Children,False
+381,Action & Blockbuster,Action|Adventure|IMAX,False
+382,Horror & Suspense,Horror|Thriller|Mystery,False
+383,Animation & Fantasy,Animation|Fantasy|Children,False
+384,Prestige Drama & Crime,Drama|Crime|History,False
+385,Prestige Drama & Crime,Drama|Crime|History,False
+386,Horror & Suspense,Horror|Thriller|Mystery,True
+387,Animation & Fantasy,Animation|Fantasy|Children,True
+388,Horror & Suspense,Horror|Thriller|Mystery,True
+389,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,True
+390,Comedy & Romance,Comedy|Romance|Musical,True
+391,Action & Blockbuster,Action|Adventure|IMAX,True
+392,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,True
+393,Action & Blockbuster,Action|Adventure|IMAX,True
+394,Animation & Fantasy,Animation|Fantasy|Children,True
+395,Sci-Fi & Mind-Bender,Sci-Fi|Mystery|Thriller,True
+396,Prestige Drama & Crime,Drama|Crime|History,True
+397,Comedy & Romance,Comedy|Romance|Musical,True
+398,Prestige Drama & Crime,Drama|Crime|History,True
+399,Prestige Drama & Crime,Drama|Crime|History,True
+400,Prestige Drama & Crime,Drama|Crime|History,True

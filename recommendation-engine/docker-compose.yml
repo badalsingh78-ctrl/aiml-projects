@@ -1,0 +1,49 @@
+version: "3.9"
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: cinepulse-redis
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
+
+  triton:
+    image: nvcr.io/nvidia/tritonserver:24.08-py3
+    container_name: cinepulse-triton
+    ports:
+      - "8001:8000"
+      - "8002:8001"
+      - "8003:8002"
+    volumes:
+      - ./triton/model_repository:/models
+    command: ["tritonserver", "--model-repository=/models", "--model-control-mode=poll", "--repository-poll-secs=30"]
+    profiles: ["full"]
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: cinepulse-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - TRITON_URL=http://triton:8000
+      - DISABLE_TRITON=1
+    depends_on:
+      - redis
+
+  airflow:
+    image: apache/airflow:2.9.3
+    container_name: cinepulse-airflow
+    ports:
+      - "8080:8080"
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=SequentialExecutor
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - .:/opt/airflow/project
+    command: ["standalone"]
+    profiles: ["full"]

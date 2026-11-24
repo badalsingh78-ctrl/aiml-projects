@@ -1,0 +1,14 @@
+name: "wide_deep_ranker"
+platform: "tensorflow_savedmodel"
+max_batch_size: 512
+input [
+  { name: "dense_features" data_type: TYPE_FP32 dims: [ 9 ] }
+]
+output [
+  { name: "click_probability" data_type: TYPE_FP32 dims: [ 1 ] }
+]
+dynamic_batching {
+  preferred_batch_size: [ 64, 128, 256 ]
+  max_queue_delay_microseconds: 1000
+}
+instance_group [ { count: 2 kind: KIND_CPU } ]

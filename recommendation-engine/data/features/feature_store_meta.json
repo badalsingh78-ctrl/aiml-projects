@@ -1,0 +1,29 @@
+{
+  "engine": "pandas_local_mirror",
+  "pyspark_available": false,
+  "user_feature_rows": 385,
+  "item_feature_rows": 120,
+  "num_genres": 19,
+  "genres": [
+    "Action",
+    "Adventure",
+    "Animation",
+    "Children",
+    "Comedy",
+    "Crime",
+    "Drama",
+    "Fantasy",
+    "Film-Noir",
+    "History",
+    "Horror",
+    "IMAX",
+    "Musical",
+    "Mystery",
+    "Romance",
+    "Sci-Fi",
+    "Thriller",
+    "War",
+    "Western"
+  ],
+  "global_mean_rating": 4.4216
+}

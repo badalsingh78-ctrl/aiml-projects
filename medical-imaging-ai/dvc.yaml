@@ -1,0 +1,41 @@
+stages:
+  preprocess:
+    cmd: python -m ml.preprocess --params params.yaml --input data/raw --output data/processed
+    deps:
+      - ml/preprocess.py
+      - ml/dicom_utils.py
+      - data/raw
+    params:
+      - dataset
+      - preprocess
+    outs:
+      - data/processed
+
+  train_classifier:
+    cmd: python -m ml.train_classifier --params params.yaml --data data/processed --output models/classifier_densenet121.pth
+    deps:
+      - ml/train_classifier.py
+      - data/processed
+    params:
+      - classifier
+    outs:
+      - models/classifier_densenet121.pth
+
+  train_segmentation:
+    cmd: python -m ml.train_segmentation --params params.yaml --data data/processed --output models/unet3d_monai.pth
+    deps:
+      - ml/train_segmentation.py
+      - data/processed
+    params:
+      - segmentation
+    outs:
+      - models/unet3d_monai.pth
+
+  evaluate:
+    cmd: python -m ml.evaluate --params params.yaml --data data/processed --cls-model models/classifier_densenet121.pth --seg-model models/unet3d_monai.pth --output reports/metrics.json
+    deps:
+      - ml/evaluate.py
+      - models/classifier_densenet121.pth
+      - models/unet3d_monai.pth
+    metrics:
+      - reports/metrics.json

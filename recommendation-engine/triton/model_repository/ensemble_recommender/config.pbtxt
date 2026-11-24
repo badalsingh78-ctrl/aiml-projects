@@ -1,0 +1,26 @@
+name: "ensemble_recommender"
+platform: "ensemble"
+max_batch_size: 256
+input [
+  { name: "dense_features" data_type: TYPE_FP32 dims: [ 9 ] }
+]
+output [
+  { name: "dcn_score" data_type: TYPE_FP32 dims: [ 1 ] },
+  { name: "wide_deep_score" data_type: TYPE_FP32 dims: [ 1 ] }
+]
+ensemble_scheduling {
+  step [
+    {
+      model_name: "dcn_ranker"
+      model_version: -1
+      input_map { key: "dense_features" value: "dense_features" }
+      output_map { key: "click_probability" value: "dcn_score" }
+    },
+    {
+      model_name: "wide_deep_ranker"
+      model_version: -1
+      input_map { key: "dense_features" value: "dense_features" }
+      output_map { key: "click_probability" value: "wide_deep_score" }
+    }
+  ]
+}
